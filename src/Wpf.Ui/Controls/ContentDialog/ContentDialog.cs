@@ -114,6 +114,14 @@ public class ContentDialog : ContentControl
         new PropertyMetadata(string.Empty)
     );
 
+    /// <summary>Identifies the <see cref="TertiaryButtonText"/> dependency property.</summary>
+    public static readonly DependencyProperty TertiaryButtonTextProperty = DependencyProperty.Register(
+        nameof(TertiaryButtonText),
+        typeof(string),
+        typeof(ContentDialog),
+        new PropertyMetadata(string.Empty)
+    );
+
     /// <summary>Identifies the <see cref="CloseButtonText"/> dependency property.</summary>
     public static readonly DependencyProperty CloseButtonTextProperty = DependencyProperty.Register(
         nameof(CloseButtonText),
@@ -321,6 +329,15 @@ public class ContentDialog : ContentControl
     {
         get => (string)GetValue(SecondaryButtonTextProperty);
         set => SetValue(SecondaryButtonTextProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the text to be displayed on the secondary button.
+    /// </summary>
+    public string TertiaryButtonText
+    {
+        get => (string)GetValue(TertiaryButtonTextProperty);
+        set => SetValue(TertiaryButtonTextProperty, value);
     }
 
     /// <summary>

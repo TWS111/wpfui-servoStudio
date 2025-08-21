@@ -33,7 +33,7 @@
             Modifiers="Control" />
     </ui:FluentWindow.InputBindings>
 
-    <Grid>
+    <Grid Height="637">
         <ui:NavigationView
             x:Name="NavigationView"
             Padding="42,0,42,0"

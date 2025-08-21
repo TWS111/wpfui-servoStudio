@@ -43,7 +43,11 @@
                         </StackPanel>
                     </TabItem.Header>
                     <Grid>
-                        <TextBlock Margin="12" Text="Is a lie." />
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="238*"/>
+                            <ColumnDefinition Width="145*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Margin="12,12,12,12" Text="Is a lie." Grid.ColumnSpan="2" />
                     </Grid>
                 </TabItem>
             </TabControl>

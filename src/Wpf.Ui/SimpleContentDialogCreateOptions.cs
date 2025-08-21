@@ -36,4 +36,10 @@ public class SimpleContentDialogCreateOptions
     /// <para>If not added, or <see cref="string.Empty"/>, it will not be displayed.</para>
     /// </summary>
     public string SecondaryButtonText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the default text of the tertiary button at the bottom of the content dialog.
+    /// <para>If not added, or <see cref="string.Empty"/>, it will not be displayed.</para>
+    /// </summary>
+    public string TertiaryButtonText { get; set; } = string.Empty;
 }
