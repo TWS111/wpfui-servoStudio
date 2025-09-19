@@ -88,17 +88,18 @@
 
                     <ui:Button Content="连接串口设备" Icon="Connector20" 
                                Margin="355,24,0,0" VerticalAlignment="Top" Height="35" Width="135"
-                               Command="{Binding ViewModel.DeviceConnectCommand, Mode=OneWay}"/>
+                               Command="{Binding ViewModel.DeviceConnectCommand, Mode=OneWay}"
+                               CommandParameter="{x:Type local:ListPage}"  />
                     <ProgressBar IsIndeterminate="False" 
                                  Height="6" Width="120"
                                  Minimum="0"
                                  Maximum="100"
                                  Value="{Binding ViewModel.ProgressbarValue}" Margin="360,60,320,434"/>
                     <Label Content="√" FontWeight="Bold" FontSize="30"
-                           Visibility="{Binding ViewModel.IsLinkSucceed, Mode=OneWay}"
+                           Visibility="{Binding ViewModel.IsLinkSucceedVisible, Mode=OneWay}"
                            Height="35" Width="35" RenderTransformOrigin="7.357,-6.871" Margin="500,32,265,433" Foreground="#9E006D55" FontFamily="Segoe UI Black" Background="#CCFFFFFF" />
                     <Label Content="X" FontWeight="Bold" FontSize="30"
-                           Visibility="{Binding ViewModel.IsLinkFailed, Mode=OneWay}"
+                           Visibility="{Binding ViewModel.IsLinkFailedVisible, Mode=OneWay}"
                             Height="35" Width="35" RenderTransformOrigin="7.357,-6.871" Margin="520,33,245,432" Foreground="#CCFC0A0A" FontFamily="Segoe UI Black" />
                     
                 </Grid>

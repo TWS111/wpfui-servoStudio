@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 using Wpf.Ui.Controls;
 using Wpf.Ui.Extensions;
@@ -15,7 +16,7 @@ using Wpf.Ui.servoStudio.Models;
 
 namespace Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
-public partial class DeviceAddViewModel(IContentDialogService contentDialogService) : ViewModel
+public partial class DeviceAddViewModel(IContentDialogService contentDialogService, INavigationService navigationService) : ViewModel
 {
     private static System.Threading.Timer portSearcher;
     private static System.Threading.Timer timer10ms;
@@ -82,6 +83,12 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
     private bool _isLinkFailed = false;
 
     [ObservableProperty]
+    private Visibility _isLinkSucceedVisible = Visibility.Hidden;
+
+    [ObservableProperty]
+    private Visibility _isLinkFailedVisible = Visibility.Hidden;
+
+    [ObservableProperty]
     private int _comboBoxPortNameSelect;
 
     [ObservableProperty]
@@ -94,7 +101,7 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
     private int _comboBoxStopBitSelect;
 
     [ObservableProperty]
-    private int _comboBoxBaudSelect;       
+    private int _comboBoxBaudSelect;
 
     [ObservableProperty]
     private string? _isTestText = string.Empty;
@@ -108,7 +115,7 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
     }
 
     [RelayCommand]
-    private void OnDeviceConnect()
+    private void OnDeviceConnect(Type type)
     {
         IsTestText = ComboBoxStopBitSelect.ToString();
         timer10ms = new System.Threading.Timer(new TimerCallback(this.timer10ms_Tick), null, 0, 15);
@@ -154,15 +161,25 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
                     vcom.NewLine = "/r/n";
                     vcom.RtsEnable = true;
                 }
+
                 IsLinkSucceed = true;
                 IsLinkFailed = false;
-                OnThreadStart();
+                IsLinkSucceedVisible = Visibility.Visible;
+                IsLinkFailedVisible = Visibility.Hidden;
+                
             }
             catch (Exception ex)
             {
                 IsLinkFailed = true;
                 IsLinkSucceed = false;
+                IsLinkFailedVisible = Visibility.Visible;
+                IsLinkSucceedVisible = Visibility.Hidden;
+                return;
             }
+
+            OnThreadStart();
+            _ = navigationService.Navigate(type);
+            State = StateEnum.CheckDeviceInfo;
         }
     }
 
@@ -175,6 +192,7 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
         {
             ComboBoxPortNameFamilies.Add(_portNamesOld[i]);
         }
+
         ComboBoxPortNameSelect = 0;
         portSearcher = new System.Threading.Timer(new TimerCallback(this.timerAutoSearch_Tick), null, 0, 15);
         portSearcher.Change(0, 200);
@@ -199,6 +217,7 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
                 {
                     ComboBoxPortNameFamilies.Add(_portNameTemporary[i]);
                 }
+
                 ComboBoxPortNameSelect = 0;
             }
             else if (_portNameTemporary.Length > 0 && _portNameTemporary.Length != _portNamesOld.Length)
@@ -210,6 +229,7 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
                         isPortNameChanged = true;
                     }
                 }
+
                 if (isPortNameChanged)
                 {
                     ComboBoxPortNameFamilies.Clear();
@@ -217,6 +237,7 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
                     {
                         ComboBoxPortNameFamilies.Add(_portNameTemporary[i]);
                     }
+
                     ComboBoxPortNameSelect = 0;
                     isPortNameChanged = false;
                 }

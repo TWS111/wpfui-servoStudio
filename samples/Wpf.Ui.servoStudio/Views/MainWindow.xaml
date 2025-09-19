@@ -68,11 +68,8 @@
         
         <ui:TitleBar
             Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
-            FontSize="14"
-            
-            Icon="pack://application:,,,/Assets/applicationIcon-256.png" Margin="44,0,0,0" VerticalAlignment="Center" />
-        
-        
+            FontSize="14"            
+            Icon="pack://application:,,,/Assets/applicationIcon-256.png" Margin="44,0,0,0" VerticalAlignment="Center" />  
     </Grid>
     
 </ui:FluentWindow>

@@ -17,49 +17,10 @@
     mc:Ignorable="d">
 
     <Grid Margin="20, 20, 20, 20" HorizontalAlignment="Center" VerticalAlignment="Center">
-
-        <StackPanel Width="120" Height="60" HorizontalAlignment="Left" Margin="14,0,0,260">
-            <ui:Button
-            Command="{Binding ViewModel.CounterIncrementCommand, Mode=OneWay}"
-            Content="Click!"
-            Icon="{ui:SymbolIcon Autosum24}" Height="30" Width="82" />
-        </StackPanel>
-
-        <ui:Button
-            Command="{Binding ViewModel.CounterClearCommand, Mode=OneWay}"
-            Width="120"
-            Height="120"
-            Content="{Binding ViewModel.Counter, Mode=OneWay}"
-            Padding="0"
-            Appearance="Secondary"                        
-            FontSize="25"
-            Icon="AddCircle12" Margin="14,115,0,0" VerticalAlignment="Top" />
-
-        <ui:Button
-            HorizontalAlignment="Center"
-            Command="{Binding ViewModel.CounterClearCommand, Mode=OneWay}"
-            Width="200"
-            Height="90"
-            Icon="{ui:SymbolIcon PaddingDown20}" 
-            Margin="445,50,0,0" 
-            Content="添加设备"
-            Padding="0"
-            Appearance="Secondary"                        
-            FontSize="25"
-            VerticalAlignment="Top" />
-        <ui:Button
-            HorizontalAlignment="Center"
-            Command="{Binding ViewModel.CounterClearCommand, Mode=OneWay}"
-            Width="200"
-            Height="90"
-            Icon="{ui:SymbolIcon DismissSquareMultiple16}" 
-            Margin="445,199,0,0" 
-            Content="断开设备"
-            Padding="0"
-            Appearance="Secondary"                        
-            FontSize="25"
-            VerticalAlignment="Top" />
-
-
+        <TextBlock Text="This Page is not aviliable now"
+               HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                   Foreground="Gray"
+                FontSize="30"/>
     </Grid>
 </Page>

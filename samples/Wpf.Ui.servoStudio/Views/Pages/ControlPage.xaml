@@ -1,12 +1,14 @@
 <Page
     x:Class="Wpf.Ui.servoStudio.Views.Pages.ControlPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:c="clr-namespace:CalcBinding;assembly=CalcBinding"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
     xmlns:models="clr-namespace:Wpf.Ui.servoStudio.Models"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"    
     Title="ControlPage"
     d:DataContext="{d:DesignInstance local:ControlPage,
                                      IsDesignTimeCreatable=False}"
@@ -18,25 +20,232 @@
     ScrollViewer.CanContentScroll="False"
     mc:Ignorable="d">
 
-    <Grid Margin="20">
-        <ui:VirtualizingItemsControl
-            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-            ItemsSource="{Binding ViewModel.Colors, Mode=OneWay}"
-            VirtualizingPanel.CacheLengthUnit="Item">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type models:DataColor}">
-                    <ui:Button
-                        Width="80"
-                        Height="80"
-                        Margin="2"
-                        Padding="0"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Appearance="Secondary"                        
-                        FontSize="25"
-                        Icon="Fluent24" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ui:VirtualizingItemsControl>
+    <Grid x:Name="grid" Margin="20">
+        <TabControl x:Name="tabControl" Grid.ColumnSpan="3" Margin="0, 0, 0, 0"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" Width="{Binding ActualWidth, ElementName=grid, Mode=OneWay}" Height="{Binding ActualHeight, ElementName=grid, Mode=OneWay}" >
+            <TabItem IsSelected="True" Background="Gainsboro" >
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center">
+                        <TextBlock Text="AIM-57" 
+                                   FontSize="18"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid Height="{Binding ActualHeight, Mode=OneWay}"
+              Width="{Binding ActualWidth, ElementName=tabControl, Mode=OneWay}"
+                      Margin="0, 10, 0, 0">
+                    <ui:ToggleSwitch OffContent="电机已失能" OnContent="电机已使能"
+                                     HorizontalAlignment="Left"
+                                     VerticalAlignment="Top"
+                                     Margin="0, 10, 0, 0"
+                                     FontSize="18"
+                                     Command="{Binding ViewModel.SelectEnabledCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=local:ControlPage}, Mode=OneWay}"
+                                    />
+                    <ui:ToggleSwitch 
+                            OffContent="负方向CW" OnContent="正方向CCW"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Height="20"                            
+                            Margin="180, 10, 0, 0"
+                            Command="{Binding ViewModel.DirectionSelectedCommand, Mode=OneWay}"
+                            />
+                   
+                    <RadioButton
+                            Content="脉冲控制"
+                            GroupName="radio_group_one"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="20, 195, 0, 0"
+                            IsChecked="True" 
+                            IsEnabled="{Binding ViewModel.IsMotorEnabled, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=local:ControlPage}, Mode=OneWay}"
+                            Command="{Binding ViewModel.PluseSelectedCommand}"/>
+                    <RadioButton
+                            Content="电流模式"
+                            GroupName="radio_group_one"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="20, 50, 0, 0"
+                            IsEnabled="{Binding ViewModel.IsMotorEnabled, Mode=OneWay}"
+                            Command="{Binding ViewModel.CurrentSelectedCommand}"/>
+                    <RadioButton
+                            Content="转速模式"
+                            GroupName="radio_group_one"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="20, 95, 0, 0"
+                            IsEnabled="{Binding ViewModel.IsMotorEnabled, Mode=TwoWay}" 
+                            Command="{Binding ViewModel.VelocitySelectedCommand}"/>
+                    <RadioButton
+                            Content="位置模式"
+                            GroupName="radio_group_one"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="20, 145, 0, 0"
+                            Command="{Binding ViewModel.PositionSelectedCommand}"
+                            IsEnabled="{Binding ViewModel.IsMotorEnabled, Mode=TwoWay}" />
+                    
+                    <Slider Width="240"
+                            Minimum="0"
+                            Maximum="100"                            
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Margin="0, 55, 180, 0"
+                            IsEnabled="{Binding ViewModel.IsPluseNotSelected, Mode=TwoWay}"/>
+                    <Slider Width="240"
+                            Minimum="0"
+                            Maximum="100"                            
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Margin="0, 125, 180, 0"
+                            IsEnabled="{Binding ViewModel.IsPositionSelected, Mode=TwoWay}"/>
+                    <ui:NumberBox Width="170"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  FontSize="14"
+                                  PlaceholderEnabled="True"
+                                  PlaceholderText="0-100"
+                                  Margin="0, 80, 210, 0" 
+                                  IsEnabled="{Binding ViewModel.IsPluseNotSelected}"
+                                  />
+                    <ui:NumberBox Width="170"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  FontSize="14"
+                                  PlaceholderEnabled="True"
+                                  PlaceholderText="0-100"
+                                  Margin="0, 150, 210, 0" 
+                                  IsEnabled="{Binding ViewModel.IsPositionSelected}"
+                                  />
+                    
+                    <TextBlock Text="r/min"
+                               Visibility="{Binding ViewModel.IsVelocityUnitVisible}"
+                               FontSize="18"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Top"
+                               Margin="20, 85, 0, 0"
+                               />
+                    <TextBlock Text="mA"
+                               Visibility="{Binding ViewModel.IsCurrentUnitVisible}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Top"
+                               Margin="20, 85, 0, 0"
+                               FontSize="18" />
+                    <TextBlock Text="r"
+                               Visibility="{Binding ViewModel.IsPositionUnitVisible}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Top"
+                               Margin="20, 85, 0, 0"
+                               FontSize="18" />
+                    <TextBlock Text="deg"
+                               Visibility="{Binding ViewModel.IsPositionUnitVisible}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Top"
+                               Margin="20, 155, 0, 0"
+                               FontSize="18" />
+
+                    <ToggleButton Content="给 定"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  Width="125"
+                                  FontSize="18"
+                                  Margin="0, 200, 220, 0"
+                                  IsEnabled="{Binding ViewModel.IsMotorEnabled}"
+                                  Command="{Binding ViewModel.GivenCommand}"
+                                  />
+                    <Image Height="150" 
+                           Width="270"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Top"
+                           Margin="0, 40, 0, 0"
+                           Source="/Assets/MotorSpin.png"/>
+                    <Image Height="150" 
+                            Width="270"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="0, 40, 0, 0"
+                            Visibility="{Binding ViewModel.IsCCWVisible}"
+                            Source="/Assets/MotorSpinCCW.png"/>
+                    <Image Height="150"
+                            Width="270"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="0, 40, 0, 0"
+                            Visibility="{Binding ViewModel.IsCWVisible}"
+                            Source="/Assets/MotorSpinCW.png"/>
+                    
+                    <ScottPlot:WpfPlot x:Name="wpfPlot" 
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       Height="{c:Binding ActualHeight * 0.35, Mode=OneWay}"
+                                       Width="{c:Binding ActualWidth * 0.7, ElementName=tabControl, Mode=OneWay}"
+                                       Margin="0,280,0,0"
+                                       Grid.Column="1" BorderThickness="2,2,2,7" BorderBrush="#FF0C6683"/>
+
+                    <DataGrid Grid.ColumnSpan ="2" 
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Top"
+                              Margin="0,280,0,0"
+                              Width="{c:Binding ActualWidth * 0.3, ElementName=tabControl, Mode=OneWay}">
+                        <DataGridComboBoxColumn Header="选择显示数据" Width="150" 
+                                                />
+
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+            <TabItem Background="Gainsboro" >
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+                        <TextBlock Text="FU-60" 
+                                   FontSize="18"
+                        HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid  Height="500"
+               Width="800">
+
+                </Grid>
+            </TabItem>
+            <TabItem Background="Gainsboro">
+                <TabItem.Header >
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+                        <TextBlock Text="HPM-60" 
+                                   FontSize="18"
+                        HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid  Height="500"
+               Width="800">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="73*"/>
+                        <ColumnDefinition Width="727*"/>
+                    </Grid.ColumnDefinitions>
+
+                </Grid>
+            </TabItem>
+            <TabItem Background="Gainsboro">
+                <TabItem.Header >
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center">
+                        <TextBlock Text="FU6881" 
+                       FontSize="18"
+                        HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid  Height="500"
+                        Width="800">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="73*"/>
+                        <ColumnDefinition Width="727*"/>
+                    </Grid.ColumnDefinitions>
+
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+
     </Grid>
 </Page>

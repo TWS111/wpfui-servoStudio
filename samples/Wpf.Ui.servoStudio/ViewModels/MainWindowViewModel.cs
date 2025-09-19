@@ -96,13 +96,13 @@ public partial class MainWindowViewModel : ViewModel
             {
                 new NavigationViewItem("设备列表",
                 SymbolRegular.TextBulletList20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DeviceSetPages.ListPage)),
                 new NavigationViewItem("添加设备",
                 SymbolRegular.Add24,                
                 typeof(Views.Pages.DeviceSetPages.DeviceAddPage)),
                 new NavigationViewItem("移除设备",
                 SymbolRegular.Subtract20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
             },
 
             },
@@ -118,13 +118,13 @@ public partial class MainWindowViewModel : ViewModel
                 typeof(Views.Pages.HardwarePages.ControllerPage)),
                 new NavigationViewItem("电机参数",
                 SymbolRegular.ArrowSync20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("IO配置",
                 SymbolRegular.ArrowSwap20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("硬件信息",
                 SymbolRegular.Memory16,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
             },
             },
             new NavigationViewItem()
@@ -136,13 +136,13 @@ public partial class MainWindowViewModel : ViewModel
             {
                 new NavigationViewItem("控制模式",
                 SymbolRegular.DeveloperBoardLightning20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("运动限制",
                 SymbolRegular.CenterHorizontal20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("振动抑制",
                 SymbolRegular.DeviceEq20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
             },
             },
             new NavigationViewItem()
@@ -154,10 +154,10 @@ public partial class MainWindowViewModel : ViewModel
             {
                 new NavigationViewItem("用户参数",
                 SymbolRegular.CalendarChat20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("PID调节",
                 SymbolRegular.StreamInputOutput20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("厂家参数",
                 SymbolRegular.CalendarLock20,
                 typeof(Views.Pages.ParametersPages.FactoryPage)),
@@ -185,36 +185,36 @@ public partial class MainWindowViewModel : ViewModel
             {
                 Content = navigationTitle[6],
                 Icon = new SymbolIcon { Symbol = SymbolRegular.DataUsage20 },
-                TargetPageType = typeof(Views.Pages.ControlPage),
+                TargetPageType = typeof(Views.Pages.DashboardPage),
                 MenuItemsSource = new object[]
             {
                 new NavigationViewItem("数据存储",
                 SymbolRegular.ArrowDownload24,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("数据导入/查看",
                 SymbolRegular.Memory16,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("配置JSON读取/导出",
                 SymbolRegular.DocumentChevronDouble24,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("软件LOG日志",
                 SymbolRegular.DocumentChevronDouble20,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
             },
             },
             new NavigationViewItem()
             {
                 Content = navigationTitle[7],
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Apps24 },
-                TargetPageType = typeof(Views.Pages.ControlPage),
+                TargetPageType = typeof(Views.Pages.DashboardPage),
                 MenuItemsSource = new object[]
             {
                 new NavigationViewItem("控制器程序烧写",
                 SymbolRegular.ArrowDownload24,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("EEPROM提取",
                 SymbolRegular.Memory16,
-                typeof(Views.Pages.ControlPage)),
+                typeof(Views.Pages.DashboardPage)),
             },
             },
         ];
@@ -231,7 +231,7 @@ public partial class MainWindowViewModel : ViewModel
             {
             Content = navigationTitle[^1],//max10 now9-zerobase
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Gauge24 },
-                TargetPageType = typeof(Views.Pages.ControlPage),
+                TargetPageType = typeof(Views.Pages.DashboardPage),
             },
         ];
 

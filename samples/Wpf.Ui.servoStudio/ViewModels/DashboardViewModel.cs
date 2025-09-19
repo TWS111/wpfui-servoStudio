@@ -11,25 +11,7 @@ namespace Wpf.Ui.servoStudio.ViewModels;
 public partial class DashboardViewModel : ViewModel
 {
     private bool _isInitialized = false;
-
-    [ObservableProperty]
-    private int _counter = 0;
-
-    [ObservableProperty]
-    private List<object> _devices = [];
-
-    [RelayCommand]
-    private void OnCounterIncrement()
-    {
-        Counter++;
-    }
-
-    [RelayCommand]
-    private void OnCounterClear()
-    {
-        Counter = 0;
-    }
-
+    
     public override void OnNavigatedTo()
     {
         if (!_isInitialized)
@@ -38,8 +20,7 @@ public partial class DashboardViewModel : ViewModel
         }
     }
     private void InitializeViewModel()
-    {        
-        Devices.Clear();
+    {
         _isInitialized = true;
     }
 }

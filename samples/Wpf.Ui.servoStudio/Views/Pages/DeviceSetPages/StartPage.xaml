@@ -29,23 +29,7 @@
     <Grid Margin="20, 20, 20, 20" HorizontalAlignment="Center" VerticalAlignment="Center">
 
         <StackPanel Width="120" Height="60" HorizontalAlignment="Left" Margin="14,0,0,260">
-        </StackPanel>
-       
-        <ui:DataGrid
-            HorizontalAlignment="Left"
-            VerticalContentAlignment="Top"
-            Margin="200, 80, 0, 0"
-            ItemsSource="{Binding ViewModel.DevicesCollection}"
-            IsReadOnly="True">
-        </ui:DataGrid>
-
-        <ui:DataGrid
-            HorizontalAlignment="Left"
-            VerticalContentAlignment="Top"
-            Margin="200, 80, 0, 0"
-            ItemsSource="{Binding ViewModel.DevicesCollection}"
-            IsReadOnly="True">
-        </ui:DataGrid>
+        </StackPanel>              
         
         <ui:Button      
             Command="{Binding ViewModel.ShowDialogCommand}"

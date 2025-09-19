@@ -1,0 +1,76 @@
+<Page x:Name="page"
+    x:Class="Wpf.Ui.servoStudio.Views.Pages.DeviceSetPages.ListPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.DeviceSetPages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="ListPage"
+    d:DataContext="{d:DesignInstance local:ListPage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    mc:Ignorable="d">
+
+    <Grid x:Name="grid" 
+          Margin="20"
+          ShowGridLines="True"
+          HorizontalAlignment="Center" 
+          VerticalAlignment="Top">
+        <DataGrid ItemsSource="{Binding DeviceList}"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Top"                  
+                  CanUserAddRows="False" 
+                  CanUserDeleteRows="False" 
+                  
+                  IsReadOnly="True" Width="{Binding ElementName=grid, Mode=OneWay}"  >
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="设备名称" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="设备类型" Binding="{Binding Type}" Width="*"/>
+                <DataGridTextColumn Header="轴地址" Binding="{Binding IPAddress}" Width="*"/>
+                <DataGridTextColumn Header="软件版本号" Binding="{Binding Port}" Width="*"/>
+                <DataGridTextColumn Header="控制器版本号" Binding="{Binding Port}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <DataGrid
+          HorizontalAlignment="Center"
+          VerticalAlignment="Top"   
+          Margin="0, 200, 0, 0"
+          
+           Width="{Binding ElementName=grid, Mode=OneWay}"  >
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="软件版本" Binding="{Binding ViewModel.WeightCollection.SoftwareVersion}" Width="*"/>
+                <DataGridTextColumn Header="组号" Binding="{Binding ViewModel.WeightCollection.GroupNumber}" Width="*"/>
+                <DataGridComboBoxColumn Header="轮询"
+                        ItemsSource="{Binding ViewModel.WeightCollection.TurningOptions}"
+                        SelectedItemBinding="{Binding ViewModel.WeightCollection.SelectedTurning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </DataGrid.Columns>
+        </DataGrid>
+        
+        <DockPanel 
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="0, 260, 0, 0"
+            Visibility="{Binding ViewModel.IsScaningVisible}">
+            <ui:ProgressRing 
+                DockPanel.Dock="Top"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Height="50"
+                Width="50"
+                IsIndeterminate="True"/>
+            <TextBlock 
+                DockPanel.Dock="Bottom"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,0,0,0"
+                FontSize="18"                
+                Text="扫描设备中... 或当前无设备连接"/>
+        </DockPanel>
+    </Grid>
+</Page>

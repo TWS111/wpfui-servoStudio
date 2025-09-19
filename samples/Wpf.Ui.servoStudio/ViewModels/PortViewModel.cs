@@ -7,15 +7,7 @@ namespace Wpf.Ui.servoStudio.ViewModels;
 
 public partial class PortViewModel : ViewModel
 {
-    //private Task onPortReceive = new Task(Task =>
-    //{
-    //    // Simulate port receive logic
-    //    while (true)
-    //    {
-    //        OnPortReceive();
-    //        //Task.Delay(1000).Wait(); // Simulate waiting for data
-    //    }
-    //});
+    
     private bool _isInitialized = false;
 
     public override void OnNavigatedTo()

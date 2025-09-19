@@ -8,6 +8,9 @@ namespace Wpf.Ui.servoStudio.Models;
 public enum StateEnum
 {
     Init,
+    CheckDeviceInfo,
+    WaitToReceiveDeviceInfo,
+
     InsertToSendGroup1,
     WaitToInsertReceiveGroup1,
     ReadyToSendGroup1,
@@ -44,5 +47,19 @@ public enum StateEnum
     WaitToInsertReceiveGroup9,
     ReadyToSendGroup9,
     WaitToReceiveGroup9,
+    InsertToSendGroupA,
+    WaitToInsertReceiveGroupA,
+    ReadyToSendGroupA,
+    WaitToReceiveGroupA,
+    InsertToSendGroupB,
+    WaitToInsertReceiveGroupB,
+    ReadyToSendGroupB,
+    WaitToReceiveGroupB,
+    EOE
+}
 
+public class FixedFrame
+{
+    public string checkDeviceInfoFrame = "00000000000000000000";
+    public string checkSlaveAddressFillFrame = "03";
 }

@@ -32,8 +32,10 @@ public class HEXConvert
                 case "E": value += 14 * multi; break;
                 case "F": value += 15 * multi; break;
             }
+
             multi *= 16;
         }
+
         return byte.Parse(value.ToString());
     }
     public static double HEXConvertToDouble(string str, int count)
@@ -61,8 +63,10 @@ public class HEXConvert
                 case "E": value += 14 * multi; break;
                 case "F": value += 15 * multi; break;
             }
+
             multi *= 16;
         }
+
         return value;
     }
 
@@ -100,8 +104,10 @@ public class HEXConvert
                 case "E" when i == 0: value -= 0x80000000; value += 6 * multi; break;
                 case "F" when i == 0: value -= 0x80000000; value += 7 * multi; break;
             }
+
             multi *= 16;
         }
+
         return value;
     }
 }

@@ -15,16 +15,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="CalcBinding" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="RJCP.SerialPortStream" />
+    <PackageReference Include="ScottPlot" />
+    <PackageReference Include="ScottPlot.WPF" />
     <PackageReference Include="System.IO.Ports" />
   </ItemGroup>
 
   <ItemGroup>
     <None Remove="Assets\applicationIcon-1024.png" />
     <None Remove="Assets\applicationIcon-256.png" />
+    <None Remove="Assets\MotorSpin.png" />
+    <None Remove="Assets\MotorSpinCCW.png" />
+    <None Remove="Assets\MotorSpinCW.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +44,15 @@
   <ItemGroup>
     <Resource Include="Assets\applicationIcon-1024.png" />
     <Resource Include="Assets\applicationIcon-256.png" />
+    <Resource Include="Assets\MotorSpin.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\MotorSpinCCW.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\MotorSpinCW.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>

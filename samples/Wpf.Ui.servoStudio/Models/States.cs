@@ -5,7 +5,7 @@
 
 namespace Wpf.Ui.servoStudio.Models;
 
-public static class States
+public class States
 {
-    
+    public StateEnum portCommunicateState;
 }
