@@ -66,6 +66,8 @@ public partial class App
                 _ = services.AddSingleton<ViewModels.DeviceSet.ListViewModel>();
                 _ = services.AddSingleton<Views.Pages.ParametersPages.FactoryPage>();
                 _ = services.AddSingleton<ViewModels.Parameters.FactoryViewModel>();
+                _ = services.AddSingleton<Views.Pages.MotionPages.MotionTypePage>();
+                _ = services.AddSingleton<ViewModels.Motion.MotionTypeViewModel>();
                 _ = services.AddSingleton<Views.Pages.DataPage>();
                 _ = services.AddSingleton<ViewModels.DataViewModel>();
                 _ = services.AddSingleton<Views.Pages.ControlPage>();

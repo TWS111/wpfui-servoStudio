@@ -17,6 +17,12 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="CalcBinding" />
+    <PackageReference Include="Leal.Core" />
+    <PackageReference Include="Leal.Core.CANOpen.CiA402" />
+    <PackageReference Include="Leal.Core.Machine.EtherCAT" />
+    <PackageReference Include="Leal.Core.Net.EtherCAT" />
+    <PackageReference Include="Leal.Core.Net.Modbus" />
+    <PackageReference Include="Leal.Core.UI" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
@@ -53,10 +59,6 @@
     <Resource Include="Assets\MotorSpinCW.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Views\Pages\MotionPages\" />
   </ItemGroup>
 
 </Project>

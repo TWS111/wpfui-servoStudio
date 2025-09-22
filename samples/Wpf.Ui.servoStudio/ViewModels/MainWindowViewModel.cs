@@ -136,7 +136,7 @@ public partial class MainWindowViewModel : ViewModel
             {
                 new NavigationViewItem("控制模式",
                 SymbolRegular.DeveloperBoardLightning20,
-                typeof(Views.Pages.DashboardPage)),
+                typeof(Views.Pages.MotionPages.MotionTypePage)),
                 new NavigationViewItem("运动限制",
                 SymbolRegular.CenterHorizontal20,
                 typeof(Views.Pages.DashboardPage)),

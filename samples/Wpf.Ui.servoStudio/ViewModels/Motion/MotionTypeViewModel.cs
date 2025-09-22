@@ -3,7 +3,6 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using Core.Net.EtherCAT;
 using RJCP.IO.Ports;
 using System;
 using System.Collections.ObjectModel;
@@ -16,18 +15,32 @@ using System.Windows.Media;
 using Windows.Networking;
 using Wpf.Ui.servoStudio.Models;
 
-namespace Wpf.Ui.servoStudio.ViewModels.Parameters;
+namespace Wpf.Ui.servoStudio.ViewModels.Motion;
 
-public partial class FactoryViewModel : ViewModel
+public partial class MotionTypeViewModel : ViewModel
 {
     
     private bool _isInitialized = false;
     private bool _isVirtualAllSelected = false;
     FactoryParametersFillInfo _factoryParametersFill = new FactoryParametersFillInfo();
-    
+
     [ObservableProperty]
-    private TrulyObservableCollection<FactoryParameters> _factoryParametersCollection = new TrulyObservableCollection<FactoryParameters>();
-    
+    private int _motionModeIndex;
+
+    [ObservableProperty]
+    private ObservableCollection<string> _comboBoxMotionMode =
+     [
+        "轮廓位置模式",
+        "速度模式",
+        "轮廓速度模式",
+        "轮廓转矩模式",
+        "原点回归模式",
+        "插补模式",
+    ];
+
+    [ObservableProperty]
+    private TrulyObservableCollection<FactoryParameters> _factoryParametersCollection = new TrulyObservableCollection<FactoryParameters>();       
+
     [ObservableProperty]
     private ObservableCollection<FactoryParameters> _originalCollection = new ObservableCollection<FactoryParameters>();
 
