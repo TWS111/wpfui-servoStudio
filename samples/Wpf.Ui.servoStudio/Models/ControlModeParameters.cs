@@ -11,7 +11,7 @@ using Core.CANOpen.CiA402;
 
 namespace Wpf.Ui.servoStudio.Models;
 
-public class FactoryParameters : ObservableObject, INotifyPropertyChanged
+public class ControlModeParameters : ObservableObject, INotifyPropertyChanged
 {
     public string? _index;
     public string? Index
@@ -39,19 +39,6 @@ public class FactoryParameters : ObservableObject, INotifyPropertyChanged
         }
     }
 
-    public string? _subscribe;
-    public string? Subscribe
-    {
-        get => _subscribe;
-        set
-        {
-            if (_subscribe == null)
-            {
-                _subscribe = value;
-            }
-        }
-    }
-
     public string? _parameterName;
     public string? ParameterName
     {
@@ -63,9 +50,7 @@ public class FactoryParameters : ObservableObject, INotifyPropertyChanged
                 _parameterName = value;
             }
         }
-    }
-
-    public DataType TypeUnit { get; set; }
+    }    
 
     public int _actualValue;
     public int ActualValue
@@ -80,6 +65,7 @@ public class FactoryParameters : ObservableObject, INotifyPropertyChanged
                     return;
                 }
             }
+
             SetProperty(ref _actualValue, value);
             SetField(ref _actualValue, value);
             OnPropertyChanged(nameof(ActualValueChange));
@@ -110,20 +96,7 @@ public class FactoryParameters : ObservableObject, INotifyPropertyChanged
                 _maxValue = value;
             }
         }
-    }
-
-    public string? _defaultValue;
-    public string? DefaultValue
-    {
-        get => _defaultValue;
-        set
-        {
-            if (_defaultValue == null)
-            {
-                _defaultValue = value;
-            }
-        }
-    }
+    }    
 
     private int ActualValueChange
     {
@@ -149,106 +122,9 @@ public class FactoryParameters : ObservableObject, INotifyPropertyChanged
     }
 }
 
-public class FactoryMessage
+public class ControlModeParametersFillInfo
 {
-    public FactoryMessage(string? message)
-    {
-        Message = message;
-    }
-
-    public string? Message { get; }
-}
-
-public class DateChangedEventArgs : EventArgs
-
-{
-    public DateTime OldValue { get; set; }
-
-    public DateTime NewValue { get; set; }
-}
-
-public class FactoryParametersFillInfo
-{
-    public int[] groupInContains = {
-        4,  // H00
-        15, // H01
-        5,  // H02
-        7,  // H05
-        6,  // H06
-        6,  // H07
-        8,  // H08
-        2,  // H0A
-        7,  // H0B
-        3,  // H0C
-        4,  // H0D
-    };
-
-    public const int parametersFillinLength = 51;
-
-    public int[] typeUnitIndex =
-    {
-        3,
-        3,
-        3,
-        3,
-
-        3,
-        3,
-        3,
-        3,
-        3,
-        4,
-        4,
-        4,
-        3,
-        3,
-        4,
-
-        3,
-        3,
-        3,
-        5,
-        3,
-
-        3,
-        3,
-        6,
-        4,
-        3,
-        3,
-
-        4,
-        4,
-
-        4,
-        4,
-        4,
-
-        4,
-        4,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-
-        4,
-        3,
-        3,
-        6,
-        3,
-        3,
-        3,
-
-        3,
-        3,
-
-        3,
-        3,
-        3,
-    };
-
+    
     public string[] index =
     {
         "H00_00",

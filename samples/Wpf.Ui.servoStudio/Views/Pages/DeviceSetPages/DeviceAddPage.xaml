@@ -14,97 +14,252 @@
     ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
     ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-    mc:Ignorable="d">      
-    
-    <Grid>
-        
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="115*"/>
-            <ColumnDefinition Width="489*"/>
-        </Grid.ColumnDefinitions>
+    mc:Ignorable="d">
 
-        <TabControl Grid.ColumnSpan="3" Margin="20, 40, 0, 0">
-            <TabItem >
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center">
-                        <TextBlock Text="EtherCAT" 
-                                   HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <Grid Height="500"
-                      Width="800">
+    <Grid Margin="20,10,20,10">
+        <TabControl>
 
-                </Grid>
-            </TabItem>
-            <TabItem >
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center">
-                        <TextBlock Text="CANopen" 
-                                HorizontalAlignment="Center"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <Grid  Height="500"
-                       Width="800">
-
-                </Grid>
-            </TabItem>
+            <!-- ===== EtherCAT ===== -->
             <TabItem IsSelected="True">
-                <TabItem.Header >
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center">
-                        <TextBlock Text="modbus" 
-                                HorizontalAlignment="Center"/>
-                    </StackPanel>
+                <TabItem.Header>
+                    <TextBlock Text="EtherCAT" FontSize="16"/>
                 </TabItem.Header>
-                <Grid  Height="500"
-                       Width="800" >
-                    <Label Content="串口号：" Width="80" Height="35"  Margin="63,30,657,535" Foreground="Black" FontSize="14" />
-                    <Label Content="波特率：" Width="80" Height="35" Margin="63,96,657,469" Foreground="Black" FontSize="14"/>
-                    <Label Content="数据位：" Width="80" Height="35" Margin="63,171,657,394" Foreground="Black" FontSize="14"/>
-                    <Label Content="校验位：" Width="80" Height="35" Margin="63,250,657,315" Foreground="Black" FontSize="14"/>
-                    <Label Content="停止位：" Width="80" Height="35" Margin="63,327,657,238" Foreground="Black" FontSize="14"/>
-                    <ComboBox Width="150" Height="35" x:Name="name"
-                        ItemsSource="{Binding ViewModel.ComboBoxPortNameFamilies, Mode =TwoWay}" 
-                        SelectedIndex="{Binding ViewModel.ComboBoxPortNameSelect, Mode=TwoWay}"
-                        Margin="164,21,486,0" VerticalAlignment="Top" />
-                    <ComboBox Width="150" Height="35" x:Name="baud"
-                        ItemsSource="{Binding ViewModel.ComboBoxBaudFamilies, Mode=TwoWay}"
-                        SelectedIndex="{Binding ViewModel.ComboBoxBaudSelect, Mode=TwoWay}"
-                        Margin="164,89,486,0" VerticalAlignment="Top" />
-                    <ComboBox Width="150" Height="35" x:Name="databit" FontSize="20"
-                        ItemsSource="{Binding ViewModel.ComboBoxDataBitFamilies, Mode=TwoWay}" 
-                        SelectedIndex="{Binding ViewModel.ComboBoxDataBitSelect, Mode=TwoWay}"
-                        Margin="164,164,486,0" VerticalAlignment="Top" />
-                    <ComboBox Width="150" Height="35" x:Name="checkbit"
-                        ItemsSource="{Binding ViewModel.ComboBoxCheckBitFamilies, Mode=TwoWay}" 
-                        SelectedIndex="{Binding ViewModel.ComboBoxCheckBitSelect, Mode=TwoWay}"
-                        Margin="164,244,486,0" VerticalAlignment="Top" />
-                    <ComboBox Width="150" Height="35" x:Name="stopbit"
-                        ItemsSource="{Binding ViewModel.ComboBoxStopBitFamilies, Mode=OneWay}"                               
-                        SelectedIndex="{Binding ViewModel.ComboBoxStopBitSelect, Mode=TwoWay}"
-                        Margin="164,318,486,0" VerticalAlignment="Top" />
+                <Grid Margin="30,20,30,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" MinWidth="150"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                    <ui:Button Content="连接串口设备" Icon="Connector20" 
-                               Margin="355,24,0,0" VerticalAlignment="Top" Height="35" Width="135"
-                               Command="{Binding ViewModel.DeviceConnectCommand, Mode=OneWay}"
-                               CommandParameter="{x:Type local:ListPage}"  />
-                    <ProgressBar IsIndeterminate="False" 
-                                 Height="6" Width="120"
-                                 Minimum="0"
-                                 Maximum="100"
-                                 Value="{Binding ViewModel.ProgressbarValue}" Margin="360,60,320,434"/>
-                    <Label Content="√" FontWeight="Bold" FontSize="30"
-                           Visibility="{Binding ViewModel.IsLinkSucceedVisible, Mode=OneWay}"
-                           Height="35" Width="35" RenderTransformOrigin="7.357,-6.871" Margin="500,32,265,433" Foreground="#9E006D55" FontFamily="Segoe UI Black" Background="#CCFFFFFF" />
-                    <Label Content="X" FontWeight="Bold" FontSize="30"
-                           Visibility="{Binding ViewModel.IsLinkFailedVisible, Mode=OneWay}"
-                            Height="35" Width="35" RenderTransformOrigin="7.357,-6.871" Margin="520,33,245,432" Foreground="#CCFC0A0A" FontFamily="Segoe UI Black" />
-                    
+                    <!-- Row 0: 网络适配器 -->
+                    <Label Grid.Row="0" Grid.Column="0"
+                           Content="网络适配器：" FontSize="16" Foreground="Black"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1"
+                              x:Name="ethernetDevices" Height="32"
+                              ItemsSource="{Binding ViewModel.EthernetDeviceNames, Mode=OneWay}"
+                              SelectedIndex="{Binding ViewModel.EthernetDeviceSelect, Mode=TwoWay}"
+                              DropDownOpened="EthernetDevices_DropDownOpened"
+                              VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <StackPanel Grid.Row="0" Grid.Column="2"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center" Margin="5,5,5,5">
+                        <ui:Button Content="选    择" Icon="Connector20"
+                                   Height="32" MinWidth="100"
+                                   Command="{Binding ViewModel.EthernetConfirmCommand, Mode=OneWay}"/>
+                        <ui:Button Content="断    开" Icon="PlugDisconnected20"
+                                   Height="32" MinWidth="100"
+                                   Margin="6,0,0,0"
+                                   Command="{Binding ViewModel.EthernetDisconnectCommand, Mode=OneWay}"/>
+                        <Grid Margin="6,0,0,0" Width="30" Height="30">
+                            <!-- 加载动画 -->
+                            <ui:ProgressRing Visibility="{Binding ViewModel.IsEthernetLoadingVisible, Mode=OneWay}"
+                                             Height="24" Width="24"
+                                             HorizontalAlignment="Center" VerticalAlignment="Center"
+                                             IsIndeterminate="True" />
+
+                            <Label Content="√" FontWeight="Bold" FontSize="28"
+                                   Visibility="{Binding ViewModel.IsEthernetLinkSucceedVisible, Mode=OneWay}"
+                                   Foreground="#9E006D55" FontFamily="Segoe UI Black"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                            <Label Content="X" FontWeight="Bold" FontSize="28"
+                                   Visibility="{Binding ViewModel.IsEthernetLinkFailedVisible, Mode=OneWay}"
+                                   Foreground="#CCFC0A0A" FontFamily="Segoe UI Black"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Row 1: 以太网名称 -->
+                    <Label Grid.Row="1" Grid.Column="0"
+                           Content="以太网名称：" FontSize="16" Foreground="Black"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <Label Grid.Row="1" Grid.Column="1"
+                           Content="{Binding ViewModel.SelectedEthernetName, Mode=OneWay}"
+                           Foreground="#FF0066CC" FontSize="16" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+
+                    <!-- Row 2: 从站信息 -->
+                    <Label Grid.Row="2" Grid.Column="0"
+                           Content="从站信息：" FontSize="16" Foreground="Black"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                               Text="{Binding ViewModel.EthernetSlaveInfo, Mode=OneWay}"
+                               FontSize="15" Foreground="gray"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" Margin="5,5,5,5"/>
+
+                    <!-- Row 3: 从站名称 -->
+                    <Label Grid.Row="3" Grid.Column="0"
+                           Content="从站名称：" FontSize="16" Foreground="Black"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <Label Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                           Content="{Binding ViewModel.EthernetSlaveNameInfo, Mode=OneWay}"
+                           Foreground="#FF0066CC" FontSize="15" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <!-- Row 4: 从站地址 -->
+                    <Label Grid.Row="4" Grid.Column="0"
+                           Content="从站地址：" FontSize="16" Foreground="Black"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <Label Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
+                           Content="{Binding ViewModel.EthernetSlaveAddrInfo, Mode=OneWay}"
+                           Foreground="#FF0066CC" FontSize="15" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <!-- Row 5: 从站状态 -->
+                    <Label Grid.Row="5" Grid.Column="0"
+                           Content="从站状态：" FontSize="16" Foreground="Black"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <Label Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2"
+                           Content="{Binding ViewModel.EthernetSlaveStateInfo, Mode=OneWay}"
+                           Foreground="#FF0066CC" FontSize="15" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <!-- Row 6: 状态文本 -->
+                    <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2"
+                               Text="{Binding ViewModel.EthernetStatusText, Mode=OneWay}"
+                               FontSize="15" Foreground="Gray"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" Margin="5,5,5,5"/>
+                    <!-- Row 7: 手动状态切换 -->
+                    <Label Grid.Row="7" Grid.Column="0"
+                           Content="手动状态切换：" FontSize="16" Foreground="Black"
+                           VerticalAlignment="Center" Margin="5,5,5,5"/>
+                    <StackPanel Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center" Margin="5,5,5,5">
+                        <ui:Button Content="INIT"
+                                   Height="32" MinWidth="80"
+                                   Command="{Binding ViewModel.NmtSwitchToInitCommand, Mode=OneWay}"/>
+                        <ui:Button Content="PreOP"
+                                   Height="32" MinWidth="80" Margin="6,0,0,0"
+                                   Command="{Binding ViewModel.NmtSwitchToPreOPCommand, Mode=OneWay}"/>
+                        <ui:Button Content="SafeOP"
+                                   Height="32" MinWidth="80" Margin="6,0,0,0"
+                                   Command="{Binding ViewModel.NmtSwitchToSafeOPCommand, Mode=OneWay}"/>
+                        <ui:Button Content="OP"
+                                   Height="32" MinWidth="80" Margin="6,0,0,0"
+                                   Command="{Binding ViewModel.NmtSwitchToOPCommand, Mode=OneWay}"/>
+                    </StackPanel>
+
                 </Grid>
             </TabItem>
-        </TabControl>
 
+            <!-- ===== CANopen ===== -->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="CANopen" FontSize="16"/>
+                </TabItem.Header>
+                <Grid Margin="30,20,30,20">
+                    <!-- 预留 -->
+                </Grid>
+            </TabItem>
+
+            <!-- ===== Modbus ===== -->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="Modbus" FontSize="16"/>
+                </TabItem.Header>
+                <Grid Margin="30,20,30,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" MinWidth="120"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: 串口号 -->
+                    <Label Grid.Row="0" Grid.Column="0"
+                           Content="串口号：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1"
+                              x:Name="name" Height="32"
+                              ItemsSource="{Binding ViewModel.ComboBoxPortNameFamilies, Mode=TwoWay}"
+                              SelectedIndex="{Binding ViewModel.ComboBoxPortNameSelect, Mode=TwoWay}"
+                              VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <StackPanel Grid.Row="0" Grid.Column="2"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center" Margin="0,0,0,10">
+                        <ui:Button Content="连接串口设备" Icon="Connector20"
+                                   Height="32" MinWidth="120"
+                                   Command="{Binding ViewModel.DeviceConnectCommand, Mode=OneWay}"
+                                   CommandParameter="{x:Type local:ListPage}"/>
+                        <Label Content="√" FontWeight="Bold" FontSize="28"
+                               Visibility="{Binding ViewModel.IsLinkSucceedVisible, Mode=OneWay}"
+                               Foreground="#9E006D55" FontFamily="Segoe UI Black"
+                               VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        <Label Content="X" FontWeight="Bold" FontSize="28"
+                               Visibility="{Binding ViewModel.IsLinkFailedVisible, Mode=OneWay}"
+                               Foreground="#CCFC0A0A" FontFamily="Segoe UI Black"
+                               VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    </StackPanel>
+                    <ProgressBar Grid.Row="0" Grid.Column="3"
+                                 IsIndeterminate="False"
+                                 Height="6" Width="100"
+                                 Minimum="0" Maximum="100"
+                                 Value="{Binding ViewModel.ProgressbarValue}"
+                                 VerticalAlignment="Center" Margin="8,0,0,10"/>
+
+                    <!-- Row 1: 波特率 -->
+                    <Label Grid.Row="1" Grid.Column="0"
+                           Content="波特率：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1"
+                              x:Name="baud" Height="32"
+                              ItemsSource="{Binding ViewModel.ComboBoxBaudFamilies, Mode=TwoWay}"
+                              SelectedIndex="{Binding ViewModel.ComboBoxBaudSelect, Mode=TwoWay}"
+                              VerticalAlignment="Center" Margin="0,0,8,10"/>
+
+                    <!-- Row 2: 数据位 -->
+                    <Label Grid.Row="2" Grid.Column="0"
+                           Content="数据位：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <ComboBox Grid.Row="2" Grid.Column="1"
+                              x:Name="databit" Height="32"
+                              ItemsSource="{Binding ViewModel.ComboBoxDataBitFamilies, Mode=TwoWay}"
+                              SelectedIndex="{Binding ViewModel.ComboBoxDataBitSelect, Mode=TwoWay}"
+                              VerticalAlignment="Center" Margin="0,0,8,10"/>
+
+                    <!-- Row 3: 校验位 -->
+                    <Label Grid.Row="3" Grid.Column="0"
+                           Content="校验位：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <ComboBox Grid.Row="3" Grid.Column="1"
+                              x:Name="checkbit" Height="32"
+                              ItemsSource="{Binding ViewModel.ComboBoxCheckBitFamilies, Mode=TwoWay}"
+                              SelectedIndex="{Binding ViewModel.ComboBoxCheckBitSelect, Mode=TwoWay}"
+                              VerticalAlignment="Center" Margin="0,0,8,10"/>
+
+                    <!-- Row 4: 停止位 -->
+                    <Label Grid.Row="4" Grid.Column="0"
+                           Content="停止位：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <ComboBox Grid.Row="4" Grid.Column="1"
+                              x:Name="stopbit" Height="32"
+                              ItemsSource="{Binding ViewModel.ComboBoxStopBitFamilies, Mode=OneWay}"
+                              SelectedIndex="{Binding ViewModel.ComboBoxStopBitSelect, Mode=TwoWay}"
+                              VerticalAlignment="Center" Margin="0,0,8,10"/>
+                </Grid>
+            </TabItem>
+
+        </TabControl>
     </Grid>
 </Page>

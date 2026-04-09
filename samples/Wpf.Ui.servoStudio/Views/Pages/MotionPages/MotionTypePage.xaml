@@ -26,9 +26,10 @@
         <Grid HorizontalAlignment="Center"
               VerticalAlignment="Top" Width="{Binding ActualWidth, ElementName=grid, Mode=OneWay}">
             <TextBlock Text="控制模式："
+                   Margin="0, 4, 0 ,0" 
                    HorizontalAlignment="Left"
                    VerticalAlignment="Top"
-                   FontSize="22"                   
+                   FontSize="20"                   
                    />
             <ComboBox Width="200" Height="35" x:Name="name"
                 ItemsSource="{Binding ViewModel.ComboBoxMotionMode, Mode=TwoWay}" 

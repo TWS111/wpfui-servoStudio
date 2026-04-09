@@ -17,7 +17,7 @@ namespace Wpf.Ui.servoStudio.ViewModels;
 public abstract class ViewModel :
     ObservableObject, INavigationAware
 {
-    public SerialPortStream vcom = new SerialPortStream();
+        
     public SerialPortFaultInfo PortFaultInfo = new SerialPortFaultInfo();
     public SerialPortTransmitInfo PortTransmitInfo = new SerialPortTransmitInfo();
     public SerialPortReceiveInfo PortReceiveInfo = new SerialPortReceiveInfo();
@@ -25,7 +25,7 @@ public abstract class ViewModel :
     public QueueInsertInfo QueueInfo = new QueueInsertInfo();
     public QueueInfo QueueListSample = new QueueInfo();
     public SerialPortFrameInfo PortFrameInfo = new SerialPortFrameInfo();
-
+    public SerialPortStream vcom = new SerialPortStream();
     public StateEnum State = StateEnum.Init;
 
     public void OnThreadStart()

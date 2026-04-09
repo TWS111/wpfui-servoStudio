@@ -19,6 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Jalium.UI" />
+    <PackageReference Include="Jalium.UI.Build">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Leal.Core.Machine.EtherCAT" />
+    <PackageReference Include="Leal.Core.Pcap.EtherCAT" />
     <PackageReference Include="Lepo.i18n.DependencyInjection" />
     <PackageReference Include="Lepo.i18n.Wpf" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />

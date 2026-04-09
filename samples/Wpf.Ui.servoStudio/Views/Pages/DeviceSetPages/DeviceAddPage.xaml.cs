@@ -13,7 +13,7 @@ namespace Wpf.Ui.servoStudio.Views.Pages.DeviceSetPages;
 /// </summary>
 public partial class DeviceAddPage : INavigableView<DeviceAddViewModel>
 {
-    
+
     public DeviceAddViewModel ViewModel { get; }
 
     public DeviceAddPage(DeviceAddViewModel viewModel,
@@ -23,6 +23,11 @@ public partial class DeviceAddPage : INavigableView<DeviceAddViewModel>
         DataContext = this;
 
         InitializeComponent();
-        
+
+    }
+
+    private void EthernetDevices_DropDownOpened(object? sender, EventArgs e)
+    {
+        ViewModel.RefreshEthernetDevices();
     }
 }
