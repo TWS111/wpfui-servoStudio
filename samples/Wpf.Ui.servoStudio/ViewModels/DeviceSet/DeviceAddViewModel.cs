@@ -31,6 +31,9 @@ public partial class DeviceAddViewModel(IContentDialogService contentDialogServi
     private bool _isInitialized = false;
     private EtherCATMaster ecatMaster = new EtherCATMaster();
     private EtherCATSlave_CiA402? _axis;
+
+    public EtherCATMaster EcatMaster => ecatMaster;
+    public EtherCATSlave_CiA402? CurrentAxis => _axis;
     private DispatcherTimer? _slaveStateTimer;
 
     [ObservableProperty]

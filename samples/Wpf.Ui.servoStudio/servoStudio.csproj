@@ -61,9 +61,4 @@
     </Resource>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="ViewModels\Firmware\" />
-    <Folder Include="Views\Pages\FirmwarePages\" />
-  </ItemGroup>
-
 </Project>

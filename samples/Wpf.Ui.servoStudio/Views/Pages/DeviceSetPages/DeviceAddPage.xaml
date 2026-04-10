@@ -140,16 +140,68 @@
                                 VerticalAlignment="Center" Margin="5,5,5,5">
                         <ui:Button Content="INIT"
                                    Height="32" MinWidth="80"
-                                   Command="{Binding ViewModel.NmtSwitchToInitCommand, Mode=OneWay}"/>
+                                   Command="{Binding ViewModel.NmtSwitchToInitCommand, Mode=OneWay}">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding ViewModel.EthernetSlaveStateInfo}" Value="Init">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
                         <ui:Button Content="PreOP"
                                    Height="32" MinWidth="80" Margin="6,0,0,0"
-                                   Command="{Binding ViewModel.NmtSwitchToPreOPCommand, Mode=OneWay}"/>
+                                   Command="{Binding ViewModel.NmtSwitchToPreOPCommand, Mode=OneWay}">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding ViewModel.EthernetSlaveStateInfo}" Value="PreOperational">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
                         <ui:Button Content="SafeOP"
                                    Height="32" MinWidth="80" Margin="6,0,0,0"
-                                   Command="{Binding ViewModel.NmtSwitchToSafeOPCommand, Mode=OneWay}"/>
+                                   Command="{Binding ViewModel.NmtSwitchToSafeOPCommand, Mode=OneWay}">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding ViewModel.EthernetSlaveStateInfo}" Value="SafeOperational">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
                         <ui:Button Content="OP"
                                    Height="32" MinWidth="80" Margin="6,0,0,0"
-                                   Command="{Binding ViewModel.NmtSwitchToOPCommand, Mode=OneWay}"/>
+                                   Command="{Binding ViewModel.NmtSwitchToOPCommand, Mode=OneWay}">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding ViewModel.EthernetSlaveStateInfo}" Value="Operational">
+                                            <Setter Property="Appearance" Value="Primary"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
                     </StackPanel>
 
                 </Grid>

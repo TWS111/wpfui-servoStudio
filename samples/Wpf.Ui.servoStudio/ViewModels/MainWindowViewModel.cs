@@ -214,7 +214,7 @@ public partial class MainWindowViewModel : ViewModel
                 typeof(Views.Pages.DashboardPage)),
                 new NavigationViewItem("EEPROM提取",
                 SymbolRegular.Memory16,
-                typeof(Views.Pages.DashboardPage)),
+                typeof(Views.Pages.FirmwarePages.FirmwarePage)),
             },
             },
         ];

@@ -1,0 +1,182 @@
+<Page
+    x:Class="Wpf.Ui.servoStudio.Views.Pages.FirmwarePages.FirmwarePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.FirmwarePages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="FirmwarePage"
+    d:DataContext="{d:DesignInstance local:FirmwarePage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="700"
+    d:DesignWidth="1000"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    mc:Ignorable="d">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ══════ 设备连接状态 ══════ -->
+        <ui:Card Grid.Row="0" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Vertical">
+                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="EtherCAT 设备数据"/>
+                    <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                        <TextBlock Text="从站名称: " Opacity="0.6"/>
+                        <TextBlock Text="{Binding ViewModel.DeviceName, FallbackValue='-'}" FontWeight="Medium"/>
+                        <TextBlock Margin="20,0,0,0" Text="地址: " Opacity="0.6"/>
+                        <TextBlock Text="{Binding ViewModel.DeviceAddress, FallbackValue='-'}" FontWeight="Medium"/>
+                        <TextBlock Margin="20,0,0,0" Text="状态: " Opacity="0.6"/>
+                        <TextBlock Text="{Binding ViewModel.DeviceState, FallbackValue='-'}" FontWeight="Medium"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button
+                        Margin="0,0,8,0"
+                        Appearance="Primary"
+                        Command="{Binding ViewModel.ReadAllCommand}"
+                        Content="读取全部"
+                        Icon="{ui:SymbolIcon ArrowDownload24}"/>
+                    <ui:Button
+                        Command="{Binding ViewModel.RefreshStatusCommand}"
+                        Content="刷新状态"
+                        Icon="{ui:SymbolIcon ArrowSync24}"/>
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+
+        <!-- ══════ 状态栏 ══════ -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <ui:ProgressRing
+                Grid.Column="0"
+                Width="20" Height="20"
+                Margin="0,0,8,0"
+                IsIndeterminate="True"
+                Visibility="{Binding ViewModel.IsReading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                       Text="{Binding ViewModel.StatusText}" Opacity="0.7"/>
+        </Grid>
+
+        <!-- ══════ 选项卡 ══════ -->
+        <TabControl Grid.Row="3">
+
+            <!-- ──── 对象字典 ──── -->
+            <TabItem Header="对象字典 (SDO)">
+                <ui:DataGrid
+                    Margin="0,8,0,0"
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    ItemsSource="{Binding ViewModel.ObjectDictionaryEntries}">
+                    <ui:DataGrid.Columns>
+                        <DataGridTextColumn
+                            Width="90"
+                            Binding="{Binding IndexHex}"
+                            Header="Index"/>
+                        <DataGridTextColumn
+                            Width="80"
+                            Binding="{Binding SubIndexHex}"
+                            Header="SubIndex"/>
+                        <DataGridTextColumn
+                            Width="*"
+                            Binding="{Binding Name}"
+                            Header="名称"/>
+                        <DataGridTextColumn
+                            Width="100"
+                            Binding="{Binding DataTypeName}"
+                            Header="数据类型"/>
+                        <DataGridTextColumn
+                            Width="150"
+                            Binding="{Binding Value}"
+                            Header="值"/>
+                        <DataGridTextColumn
+                            Width="150"
+                            Binding="{Binding HexValue}"
+                            Header="十六进制"/>
+                    </ui:DataGrid.Columns>
+                </ui:DataGrid>
+            </TabItem>
+
+            <!-- ──── RxPDO 映射 ──── -->
+            <TabItem Header="RxPDO 映射">
+                <ui:DataGrid
+                    Margin="0,8,0,0"
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    ItemsSource="{Binding ViewModel.RxPdoMappingEntries}">
+                    <ui:DataGrid.Columns>
+                        <DataGridTextColumn
+                            Width="100"
+                            Binding="{Binding PdoIndexHex}"
+                            Header="PDO Index"/>
+                        <DataGridTextColumn
+                            Width="110"
+                            Binding="{Binding MappedIndexHex}"
+                            Header="映射对象 Index"/>
+                        <DataGridTextColumn
+                            Width="120"
+                            Binding="{Binding MappedSubIndexHex}"
+                            Header="映射对象 SubIndex"/>
+                        <DataGridTextColumn
+                            Width="80"
+                            Binding="{Binding BitLength}"
+                            Header="位长度"/>
+                        <DataGridTextColumn
+                            Width="*"
+                            Binding="{Binding ObjectName}"
+                            Header="对象名称"/>
+                    </ui:DataGrid.Columns>
+                </ui:DataGrid>
+            </TabItem>
+
+            <!-- ──── TxPDO 映射 ──── -->
+            <TabItem Header="TxPDO 映射">
+                <ui:DataGrid
+                    Margin="0,8,0,0"
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    ItemsSource="{Binding ViewModel.TxPdoMappingEntries}">
+                    <ui:DataGrid.Columns>
+                        <DataGridTextColumn
+                            Width="100"
+                            Binding="{Binding PdoIndexHex}"
+                            Header="PDO Index"/>
+                        <DataGridTextColumn
+                            Width="110"
+                            Binding="{Binding MappedIndexHex}"
+                            Header="映射对象 Index"/>
+                        <DataGridTextColumn
+                            Width="120"
+                            Binding="{Binding MappedSubIndexHex}"
+                            Header="映射对象 SubIndex"/>
+                        <DataGridTextColumn
+                            Width="80"
+                            Binding="{Binding BitLength}"
+                            Header="位长度"/>
+                        <DataGridTextColumn
+                            Width="*"
+                            Binding="{Binding ObjectName}"
+                            Header="对象名称"/>
+                    </ui:DataGrid.Columns>
+                </ui:DataGrid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Page>

@@ -81,6 +81,8 @@ public partial class App
 
                 _ = services.AddSingleton<Views.Pages.HardwarePages.ControllerPage>();
                 _ = services.AddSingleton<ViewModels.Hardware.ControllerViewModel>();
+                _ = services.AddSingleton<Views.Pages.FirmwarePages.FirmwarePage>();
+                _ = services.AddSingleton<ViewModels.Firmware.EcatEepromViewModel>();
                 // Configuration
                 _ = services.Configure<AppConfig>(context.Configuration.GetSection(nameof(AppConfig)));
             }
