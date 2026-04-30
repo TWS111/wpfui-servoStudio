@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_base.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_coe.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_config.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_dc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_foe.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_print.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_soe.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\src\ec_eoe.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\osal\win32\osal.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\oshw\win32\nicdrv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\SOEM\oshw\win32\oshw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\soemfoe_wrapper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\samples\Wpf.Ui.servoStudio\native\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{D9372D92-E816-30C9-842E-683A6003DCB3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

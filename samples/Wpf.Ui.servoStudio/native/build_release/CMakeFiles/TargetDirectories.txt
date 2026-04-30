@@ -1,0 +1,3 @@
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/samples/Wpf.Ui.servoStudio/native/build_release/CMakeFiles/soemfoe.dir
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/samples/Wpf.Ui.servoStudio/native/build_release/CMakeFiles/ALL_BUILD.dir
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/samples/Wpf.Ui.servoStudio/native/build_release/CMakeFiles/ZERO_CHECK.dir

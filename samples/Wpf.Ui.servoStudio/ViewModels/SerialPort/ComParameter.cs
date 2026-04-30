@@ -11,26 +11,25 @@ using System.Text;
 using System.Threading.Tasks;
 using Wpf.Ui.servoStudio.Models;
 
-namespace Wpf.Ui.servoStudio.ViewModels.SerialPort
+namespace Wpf.Ui.servoStudio.ViewModels.SerialPort;
+
+public partial class ComParameter : ViewModel
 {
-    public partial class ComParameter : ViewModel
+    private readonly bool _isInitialized = false;
+
+    [ObservableProperty]
+    private ObservableCollection<SerialPorts> _portsCollection;
+
+    [RelayCommand]
+    private void OnProductsAchieve()
     {
-        private bool _isInitialized = false;
+        PortsCollection = GeneratePorts();
+    }
 
-        [ObservableProperty]
-        private ObservableCollection<SerialPorts> _portsCollection;
+    private static ObservableCollection<SerialPorts> GeneratePorts()
+    {
+        var serialPorts = new ObservableCollection<SerialPorts> { };
 
-        [RelayCommand]
-        private void OnProductsAchieve()
-        {
-            PortsCollection = GeneratePorts();
-        }
-
-        private static ObservableCollection<SerialPorts> GeneratePorts()
-        {
-            var serialPorts = new ObservableCollection<SerialPorts> { };
-
-            return serialPorts;
-        }
+        return serialPorts;
     }
 }

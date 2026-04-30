@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\UserWorx\VSWorx\ServoStudio\wpfui-servoStudio\build\CMakeFiles\e238411f5eae434fc4e8acabe8053ee2\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{67ADDA0F-EDB8-3C22-AD6A-59DBA92E1142}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

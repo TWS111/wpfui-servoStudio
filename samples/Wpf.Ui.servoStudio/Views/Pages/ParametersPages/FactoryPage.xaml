@@ -18,10 +18,12 @@
     ScrollViewer.CanContentScroll="False"
     mc:Ignorable="d">
 
-    <Grid Margin="20" 
-          ShowGridLines="True"
-          Width="{Binding ActualWidth, ElementName=page, Mode=OneWay}" 
-          Height="{Binding ActualHeight, ElementName=page, Mode=OneWay}">
+    <Grid>
+        <Grid x:Name="FactoryContentRoot"
+              Margin="20" 
+              ShowGridLines="True"
+              Width="{Binding ActualWidth, ElementName=page, Mode=OneWay}" 
+              Height="{Binding ActualHeight, ElementName=page, Mode=OneWay}">
         <ui:Button
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
@@ -66,5 +68,30 @@
             ItemsSource="{Binding ViewModel.FactoryParametersCollection, Mode=TwoWay}">
         </ui:DataGrid>
         
+        </Grid>
+
+        <!-- 未解锁厂家权限时的遮罩，阻止查看和交互 -->
+        <Border x:Name="FactoryLockOverlay"
+                Background="{DynamicResource ApplicationBackgroundBrush}"
+                Opacity="0.97"
+                Visibility="Collapsed"
+                Panel.ZIndex="999">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ui:SymbolIcon Symbol="LockClosed24"
+                               FontSize="48"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <TextBlock Margin="0,12,0,0"
+                           HorizontalAlignment="Center"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           Text="此页内容需要厂家权限"/>
+                <TextBlock Margin="0,6,0,0"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="请先到“设置”页输入正确的厂家密码解锁"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Page>

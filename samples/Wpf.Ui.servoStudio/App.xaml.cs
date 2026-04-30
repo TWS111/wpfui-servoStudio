@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Wpf.Ui.servoStudio.Models;
 using Wpf.Ui.servoStudio.Services;
 using Wpf.Ui.DependencyInjection;
+using System.Windows.Media;
 
 namespace Wpf.Ui.servoStudio;
 
@@ -18,6 +19,11 @@ namespace Wpf.Ui.servoStudio;
 /// </summary>
 public partial class App
 {
+    // 单实例互斥量：防止用户同时运行多份程序，避免 ucrtbased.dll 等本地依赖
+    // 被先前进程占用导致 EtherCATMaster 等本地组件初始化失败。
+    private static System.Threading.Mutex? _singleInstanceMutex;
+    private const string SingleInstanceMutexName = "Global\\Wpf.Ui.servoStudio.SingleInstance.{B7A8C3F1-2D04-4F2C-9E62-7C3D7B6A1A11}";
+
     // The.NET Generic Host provides dependency injection, configuration, logging, and other services.
     // https://docs.microsoft.com/dotnet/core/extensions/generic-host
     // https://docs.microsoft.com/dotnet/core/extensions/dependency-injection
@@ -51,11 +57,14 @@ public partial class App
                 // Service containing navigation, same as INavigationWindow... but without window
                 _ = services.AddSingleton<INavigationService, NavigationService>();
                 _ = services.AddSingleton<IContentDialogService, ContentDialogService>();
+                _ = services.AddSingleton<Services.PageUsageTracker>();
                 // Main window with navigation
                 _ = services.AddSingleton<INavigationWindow, Views.MainWindow>();
                 _ = services.AddSingleton<ViewModels.MainWindowViewModel>();
 
-                // Views and ViewModels               
+                // Views and ViewModels
+                _ = services.AddSingleton<Views.Pages.HomePage>();
+                _ = services.AddSingleton<ViewModels.HomeViewModel>();
                 _ = services.AddSingleton<Views.Pages.DashboardPage>();
                 _ = services.AddSingleton<ViewModels.DashboardViewModel>();
                 _ = services.AddSingleton<Views.Pages.DeviceSetPages.StartPage>();
@@ -68,12 +77,14 @@ public partial class App
                 _ = services.AddSingleton<ViewModels.Parameters.FactoryViewModel>();
                 _ = services.AddSingleton<Views.Pages.MotionPages.MotionTypePage>();
                 _ = services.AddSingleton<ViewModels.Motion.MotionTypeViewModel>();
+                _ = services.AddSingleton<Views.Pages.MotionPages.MotionLimitPage>();
+                _ = services.AddSingleton<ViewModels.Motion.MotionLimitViewModel>();
                 _ = services.AddSingleton<Views.Pages.DataPage>();
                 _ = services.AddSingleton<ViewModels.DataViewModel>();
                 _ = services.AddSingleton<Views.Pages.ControlPage>();
                 _ = services.AddSingleton<ViewModels.ControlViewModel>();
                 _ = services.AddSingleton<Views.Pages.HardwarePage>();
-                _ = services.AddSingleton<ViewModels.HardwareViewModel> ();
+                _ = services.AddSingleton<ViewModels.HardwareViewModel>();
                 _ = services.AddSingleton<Views.Pages.FaultInfoPage>();
                 _ = services.AddSingleton<ViewModels.FaultInfoViewModel>();
                 _ = services.AddSingleton<Views.Pages.SettingsPage>();
@@ -81,8 +92,26 @@ public partial class App
 
                 _ = services.AddSingleton<Views.Pages.HardwarePages.ControllerPage>();
                 _ = services.AddSingleton<ViewModels.Hardware.ControllerViewModel>();
+                _ = services.AddSingleton<Views.Pages.HardwarePages.MotorPage>();
+                _ = services.AddSingleton<ViewModels.Hardware.MotorViewModel>();
+                _ = services.AddSingleton<Views.Pages.HardwarePages.IOPage>();
+                _ = services.AddSingleton<ViewModels.Hardware.IOViewModel>();
                 _ = services.AddSingleton<Views.Pages.FirmwarePages.FirmwarePage>();
                 _ = services.AddSingleton<ViewModels.Firmware.EcatEepromViewModel>();
+                _ = services.AddSingleton<Views.Pages.FirmwarePages.FirmwareProgramPage>();
+                _ = services.AddSingleton<ViewModels.Firmware.FirmwareProgramViewModel>();
+                _ = services.AddSingleton<Views.Pages.FirmwarePages.FactoryFirmwarePage>();
+                _ = services.AddSingleton<ViewModels.Firmware.FactoryFirmwareViewModel>();
+                _ = services.AddSingleton<Views.Pages.AppDataPages.AppLogPage>();
+                _ = services.AddSingleton<ViewModels.AppData.AppLogViewModel>();
+                _ = services.AddSingleton<Views.Pages.AppDataPages.PidAdjustPage>();
+                _ = services.AddSingleton<ViewModels.AppData.PidAdjustViewModel>();
+                _ = services.AddSingleton<Views.Pages.AppDataPages.DataSavePage>();
+                _ = services.AddSingleton<ViewModels.AppData.DataSaveViewModel>();
+                _ = services.AddSingleton<Views.Pages.AppDataPages.DataViewPage>();
+                _ = services.AddSingleton<ViewModels.AppData.DataViewViewModel>();
+                _ = services.AddSingleton<Views.Pages.AppDataPages.UserConfigPage>();
+                _ = services.AddSingleton<ViewModels.AppData.UserConfigViewModel>();
                 // Configuration
                 _ = services.Configure<AppConfig>(context.Configuration.GetSection(nameof(AppConfig)));
             }
@@ -102,7 +131,64 @@ public partial class App
     /// </summary>
     private async void OnStartup(object sender, StartupEventArgs e)
     {
+        // 1) 单实例检查
+        try
+        {
+            _singleInstanceMutex = new System.Threading.Mutex(initiallyOwned: true, name: SingleInstanceMutexName, out bool createdNew);
+            if (!createdNew)
+            {
+                MessageBox.Show(
+                    "ServoStudio 已经在运行中。\n请关闭已有的程序窗口后再启动新的实例。",
+                    "ServoStudio",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                Shutdown(0);
+                return;
+            }
+        }
+        catch
+        {
+            // 互斥量创建失败时不阻塞启动
+        }
+
+        // Initialize theme-sensitive indicator brush before any window shows
+        UpdateBitIndicatorOffBrush();
+        Wpf.Ui.Appearance.ApplicationThemeManager.Changed += (theme, _) =>
+        {
+            UpdateBitIndicatorOffBrush();
+            ViewModels.AppData.AppLogViewModel.Log(
+                Models.AppLogLevel.Info, Models.AppLogCategory.Config,
+                "应用主题已切换", $"新主题: {theme}");
+        };
+
+        // 启动参数 / 命令行
+        try
+        {
+            ViewModels.AppData.AppLogViewModel.Log(
+                Models.AppLogLevel.Debug, Models.AppLogCategory.App,
+                "应用启动参数",
+                $"args=[{string.Join(", ", e.Args ?? Array.Empty<string>())}] | " +
+                $"BaseDirectory={AppContext.BaseDirectory}");
+        }
+        catch
+        {
+            // ignore
+        }
+
         await _host.StartAsync();
+    }
+
+    private static void UpdateBitIndicatorOffBrush()
+    {
+        bool isDark = Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme()
+            == Wpf.Ui.Appearance.ApplicationTheme.Dark;
+
+        Color color = isDark
+            ? System.Windows.Media.Color.FromRgb(0x25, 0x25, 0x25)
+            : System.Windows.Media.Color.FromRgb(0x9E, 0x9E, 0x9E);
+
+        Application.Current.Resources["BitIndicatorOffBrush"] =
+            new System.Windows.Media.SolidColorBrush(color);
     }
 
     /// <summary>
@@ -110,9 +196,30 @@ public partial class App
     /// </summary>
     private async void OnExit(object sender, ExitEventArgs e)
     {
+        try
+        {
+            (Services.GetService(typeof(ViewModels.AppData.AppLogViewModel))
+                as ViewModels.AppData.AppLogViewModel)?.Shutdown();
+        }
+        catch
+        {
+            // ignore
+        }
+
         await _host.StopAsync();
 
         _host.Dispose();
+
+        try
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+            _singleInstanceMutex?.Dispose();
+            _singleInstanceMutex = null;
+        }
+        catch
+        {
+            // ignore
+        }
     }
 
     /// <summary>
@@ -120,6 +227,44 @@ public partial class App
     /// </summary>
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        // For more info see https://docs.microsoft.com/en-us/dotnet/api/system.windows.application.dispatcherunhandledexception?view=windowsdesktop-6.0
+        // 记录未处理异常
+        ViewModels.AppData.AppLogViewModel.Log(
+            Models.AppLogLevel.Critical, Models.AppLogCategory.System,
+            "未处理异常", e.Exception?.ToString() ?? "Unknown exception");
+
+        // 对常见的可恢复异常（如本地 DLL 被另一进程占用）：不让进程崩溃，
+        // 仅提示用户后继续运行。
+        try
+        {
+            string? msg = e.Exception?.Message;
+            bool isFileLockIssue = e.Exception is System.IO.IOException
+                && msg != null
+                && msg.IndexOf("being used by another process", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            if (isFileLockIssue)
+            {
+                MessageBox.Show(
+                    "检测到本地依赖文件被另一进程占用：\n" + msg + "\n\n" +
+                    "通常是因为已有 ServoStudio 实例尚未完全退出。\n" +
+                    "请在任务管理器中结束所有 servoStudio.exe 进程后重试。",
+                    "ServoStudio",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                e.Handled = true;
+                return;
+            }
+
+            // 其他未处理异常也尽量不让宿主线程直接崩溃
+            MessageBox.Show(
+                "程序发生未处理异常：\n" + (msg ?? "Unknown exception"),
+                "ServoStudio",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            e.Handled = true;
+        }
+        catch
+        {
+            // 兜底：保持原行为
+        }
     }
 }

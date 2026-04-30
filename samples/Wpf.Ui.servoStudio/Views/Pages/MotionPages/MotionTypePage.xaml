@@ -276,6 +276,45 @@
                             <TextBlock Text="µs" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.CspInterpolationTimePeriod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+
+                        <Border Margin="0,6,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="周期 PDO 下发（主站→从站）" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <WrapPanel VerticalAlignment="Center">
+                                    <TextBlock Text="发送周期:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:NumberBox Value="{Binding ViewModel.CyclicSendIntervalMs, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="1000" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10" MinWidth="120" Height="34"/>
+                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="8,0,14,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <ui:Button Content="启动周期发送" Command="{Binding ViewModel.StartCyclicSendCommand}" Appearance="Primary" Height="34" Margin="0,0,8,0"/>
+                                    <ui:Button Content="停止" Command="{Binding ViewModel.StopCyclicSendCommand}" Appearance="Secondary" Height="34"/>
+                                </WrapPanel>
+                                <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Text="{Binding ViewModel.CyclicSendCycleCountDisplay, StringFormat=已发送帧数: {0}}"/>
+                                <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                           Text="{Binding ViewModel.CyclicSendLastError}" TextWrapping="Wrap"/>
+
+                                <!-- CSP 测试模式：周期递增目标位置 -->
+                                <Border Margin="0,10,0,0" Padding="10" CornerRadius="6" BorderThickness="1"
+                                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                    <StackPanel>
+                                        <WrapPanel VerticalAlignment="Center">
+                                            <TextBlock Text="测试模式:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <ui:ToggleSwitch IsChecked="{Binding ViewModel.CspTestModeEnabled, Mode=TwoWay}"
+                                                             OnContent="已启用" OffContent="已关闭" VerticalAlignment="Center"/>
+                                            <TextBlock Text="位置步长:" VerticalAlignment="Center" Margin="20,0,8,0"/>
+                                            <ui:NumberBox Value="{Binding ViewModel.CspTestPositionStep, UpdateSourceTrigger=PropertyChanged}"
+                                                          Minimum="-2147483648" Maximum="2147483647" MaxDecimalPlaces="0"
+                                                          SmallChange="10" LargeChange="1000" MinWidth="140" Height="34"/>
+                                            <TextBlock Text="counts/周期" VerticalAlignment="Center" Margin="8,0,0,0"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        </WrapPanel>
+                                        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   Text="启用后，每个周期发送前主站会在当前目标位置上累加上述步长，用于平稳移动/仿真测试。"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ui:Card>
 
@@ -311,6 +350,23 @@
                             <TextBlock Text="µs" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.CsvInterpolationTimePeriod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+
+                        <Border Margin="0,6,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="周期 PDO 下发（主站→从站）" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <WrapPanel VerticalAlignment="Center">
+                                    <TextBlock Text="发送周期:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:NumberBox Value="{Binding ViewModel.CyclicSendIntervalMs, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="1000" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10" MinWidth="120" Height="34"/>
+                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="8,0,14,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <ui:Button Content="启动周期发送" Command="{Binding ViewModel.StartCyclicSendCommand}" Appearance="Primary" Height="34" Margin="0,0,8,0"/>
+                                    <ui:Button Content="停止" Command="{Binding ViewModel.StopCyclicSendCommand}" Appearance="Secondary" Height="34"/>
+                                </WrapPanel>
+                                <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Text="{Binding ViewModel.CyclicSendCycleCountDisplay, StringFormat=已发送帧数: {0}}"/>
+                                <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                           Text="{Binding ViewModel.CyclicSendLastError}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ui:Card>
 
@@ -339,6 +395,23 @@
                             <TextBlock Text="µs" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.CstInterpolationTimePeriod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+
+                        <Border Margin="0,6,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="周期 PDO 下发（主站→从站）" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <WrapPanel VerticalAlignment="Center">
+                                    <TextBlock Text="发送周期:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ui:NumberBox Value="{Binding ViewModel.CyclicSendIntervalMs, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="1000" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10" MinWidth="120" Height="34"/>
+                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="8,0,14,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <ui:Button Content="启动周期发送" Command="{Binding ViewModel.StartCyclicSendCommand}" Appearance="Primary" Height="34" Margin="0,0,8,0"/>
+                                    <ui:Button Content="停止" Command="{Binding ViewModel.StopCyclicSendCommand}" Appearance="Secondary" Height="34"/>
+                                </WrapPanel>
+                                <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Text="{Binding ViewModel.CyclicSendCycleCountDisplay, StringFormat=已发送帧数: {0}}"/>
+                                <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                           Text="{Binding ViewModel.CyclicSendLastError}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ui:Card>
             </StackPanel>

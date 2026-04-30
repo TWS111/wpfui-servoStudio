@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/samples/Wpf.Ui.servoStudio/native/build_release/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

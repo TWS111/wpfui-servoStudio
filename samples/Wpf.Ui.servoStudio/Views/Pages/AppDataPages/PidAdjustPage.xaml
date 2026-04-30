@@ -1,0 +1,422 @@
+<Page
+    x:Class="Wpf.Ui.servoStudio.Views.Pages.AppDataPages.PidAdjustPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.AppDataPages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="PidAdjustPage"
+    d:DataContext="{d:DesignInstance local:PidAdjustPage, IsDesignTimeCreatable=False}"
+    d:DesignHeight="900"
+    d:DesignWidth="1100"
+    ScrollViewer.CanContentScroll="False"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <ResourceDictionary>
+            <!-- 参数标题样式 -->
+            <Style x:Key="ParamHeader" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                <Setter Property="Margin" Value="0,0,0,2" />
+            </Style>
+
+            <!-- 参数副标题 -->
+            <Style x:Key="ParamSub" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                <Setter Property="Margin" Value="0,0,0,4" />
+            </Style>
+
+        </ResourceDictionary>
+    </Page.Resources>
+
+    <Grid Margin="18,8,18,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: 标题及连接状态 -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                Grid.Column="0"
+                FontSize="20"
+                FontWeight="SemiBold"
+                VerticalAlignment="Center"
+                Text="PID 参数调节" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Ellipse
+                    Width="10" Height="10"
+                    Margin="0,0,6,0"
+                    VerticalAlignment="Center">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="Gray" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ViewModel.IsConnected}" Value="True">
+                                    <Setter Property="Fill" Value="#4CAF50" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock
+                    FontSize="12"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{Binding ViewModel.ConnectionInfo}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Row 1: 操作按钮 -->
+        <ui:Card Grid.Row="1" Margin="0,0,0,8" Padding="10">
+            <WrapPanel VerticalAlignment="Center">
+                <ui:Button
+                    Margin="0,0,8,0"
+                    Appearance="Primary"
+                    Command="{Binding ViewModel.ReadAllCommand}"
+                    Content="读取设备参数"
+                    Icon="{ui:SymbolIcon ArrowDownload24}" />
+                <ui:Button
+                    Margin="0,0,8,0"
+                    Appearance="Success"
+                    Command="{Binding ViewModel.WriteAllCommand}"
+                    Content="全部写入设备"
+                    Icon="{ui:SymbolIcon ArrowUpload24}" />
+                <ui:Button
+                    Margin="0,0,8,0"
+                    Appearance="Caution"
+                    Command="{Binding ViewModel.ResetDefaultsCommand}"
+                    Content="恢复默认值"
+                    Icon="{ui:SymbolIcon ArrowReset24}" />
+            </WrapPanel>
+        </ui:Card>
+
+        <!-- Row 2: 分组标题（速度） -->
+        <TextBlock Grid.Row="2" Margin="0,0,0,4" FontSize="15" FontWeight="SemiBold" Text="速度环参数 (H08.00 ~ H08.05)" />
+
+        <!-- Row 3: Slider 阵列 -->
+        <Grid Grid.Row="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 速度环参数组 -->
+            <ui:Card Grid.Row="0" Margin="0,0,0,4" Padding="12">
+                <UniformGrid Columns="4" HorizontalAlignment="Stretch">
+
+                    <!-- 速度 Kp -->
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="速度Kp" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.00 / 2008-01h" />
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Orientation="Vertical" Height="180"
+                                    Minimum="0" Maximum="65535" TickFrequency="500"
+                                    Value="{Binding ViewModel.SpeedKp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Column="1" Height="180" VerticalAlignment="Top">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="65535" FontSize="9" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="2" Text="49152" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4" Text="32768" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="6" Text="16384" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="8" Text="0" FontSize="9" VerticalAlignment="Bottom" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Grid>
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.SpeedKp, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+
+                    <!-- 速度 Ki -->
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="速度Ki" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.01 / 2008-02h" />
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Orientation="Vertical" Height="180"
+                                    Minimum="0" Maximum="65535" TickFrequency="500"
+                                    Value="{Binding ViewModel.SpeedKi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Column="1" Height="180" VerticalAlignment="Top">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="65535" FontSize="9" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="2" Text="49152" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4" Text="32768" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="6" Text="16384" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="8" Text="0" FontSize="9" VerticalAlignment="Bottom" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Grid>
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.SpeedKi, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+
+                    <!-- 速度增量 -->
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="速度增量" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.04 / 2008-05h" />
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Orientation="Vertical" Height="180"
+                                    Minimum="0" Maximum="65535" TickFrequency="500"
+                                    Value="{Binding ViewModel.SpeedAcc, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Column="1" Height="180" VerticalAlignment="Top">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="65535" FontSize="9" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="2" Text="49152" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4" Text="32768" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="6" Text="16384" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="8" Text="0" FontSize="9" VerticalAlignment="Bottom" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Grid>
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.SpeedAcc, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+
+                    <!-- 速度减量 -->
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="速度减量" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.05 / 2008-06h" />
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Orientation="Vertical" Height="180"
+                                    Minimum="0" Maximum="65535" TickFrequency="500"
+                                    Value="{Binding ViewModel.SpeedDec, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Column="1" Height="180" VerticalAlignment="Top">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="65535" FontSize="9" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="2" Text="49152" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4" Text="32768" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="6" Text="16384" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="8" Text="0" FontSize="9" VerticalAlignment="Bottom" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Grid>
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.SpeedDec, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                </UniformGrid>
+            </ui:Card>
+
+            <!-- 位置环参数组 -->
+            <TextBlock Grid.Row="1" Margin="0,8,0,4" FontSize="15" FontWeight="SemiBold" Text="位置环参数 (H08.02 ~ H08.07)" />
+            <ui:Card Grid.Row="2" Margin="0,0,0,0" Padding="12">
+                <UniformGrid Columns="4" HorizontalAlignment="Stretch">
+
+                    <!-- 位置 Kp -->
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="位置Kp" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.02 / 2008-03h" />
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Orientation="Vertical" Height="180"
+                                    Minimum="0" Maximum="65535" TickFrequency="500"
+                                    Value="{Binding ViewModel.PositionKp, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Column="1" Height="180" VerticalAlignment="Top">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="65535" FontSize="9" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="2" Text="49152" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4" Text="32768" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="6" Text="16384" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="8" Text="0" FontSize="9" VerticalAlignment="Bottom" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Grid>
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.PositionKp, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+
+                    <!-- 位置 Kd -->
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="位置Kd" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.03 / 2008-04h" />
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Orientation="Vertical" Height="180"
+                                    Minimum="0" Maximum="65535" TickFrequency="500"
+                                    Value="{Binding ViewModel.PositionKd, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Column="1" Height="180" VerticalAlignment="Top">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="65535" FontSize="9" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="2" Text="49152" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4" Text="32768" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="6" Text="16384" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="8" Text="0" FontSize="9" VerticalAlignment="Bottom" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Grid>
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.PositionKd, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+
+                    <!-- 正向限幅 -->
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="正向限幅" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.06 / 2008-07h" />
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Orientation="Vertical" Height="180"
+                                    Minimum="0" Maximum="1500" TickFrequency="50"
+                                    Value="{Binding ViewModel.PositionSoutMax, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Column="1" Height="180" VerticalAlignment="Top">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="1500" FontSize="9" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="2" Text="1125" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4" Text="750" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="6" Text="375" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="8" Text="0" FontSize="9" VerticalAlignment="Bottom" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Grid>
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="1500"
+                                      Value="{Binding ViewModel.PositionSoutMax, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+
+                    <!-- 反向限幅 -->
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="反向限幅" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.07 / 2008-08h" />
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Orientation="Vertical" Height="180"
+                                    Minimum="0" Maximum="1500" TickFrequency="50"
+                                    Value="{Binding ViewModel.PositionSoutMin, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Column="1" Height="180" VerticalAlignment="Top">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="1500" FontSize="9" VerticalAlignment="Top" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="2" Text="1125" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="4" Text="750" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="6" Text="375" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Row="8" Text="0" FontSize="9" VerticalAlignment="Bottom" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Grid>
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="1500"
+                                      Value="{Binding ViewModel.PositionSoutMin, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                </UniformGrid>
+            </ui:Card>
+        </Grid>
+
+        <!-- Row 4: 状态栏 -->
+        <ui:Card Grid.Row="4" Margin="0,8,0,0" Padding="10">
+            <TextBlock
+                FontSize="12"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding ViewModel.StatusText}" />
+        </ui:Card>
+    </Grid>
+</Page>

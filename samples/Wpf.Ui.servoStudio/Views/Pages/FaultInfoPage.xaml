@@ -10,51 +10,184 @@
     Title="FaultInfoPage"
     d:DataContext="{d:DesignInstance local:FaultInfoPage,
                                      IsDesignTimeCreatable=False}"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
+    d:DesignHeight="800"
+    d:DesignWidth="1100"
     ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
     ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     ScrollViewer.CanContentScroll="False"
     mc:Ignorable="d">
 
-    <Grid Margin="20">        
-        <ui:Button
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="-470, 0, 0, 0"
-            Content="读取历史故障"
-            Icon="History24"
-            Command="{Binding ViewModel.ProductsAchieveCommand}" >
-        </ui:Button>
-        <ui:Button
-            HorizontalAlignment="Center"            
-            VerticalAlignment="Top"
-            Margin="-160, 0, 0, 0"
-            Content="清除选定故障"
-            Icon="History24">
-        </ui:Button>
-        <ui:Button
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="150, 0, 0, 0"
-            Content="清除所有故障"
-            Icon="History24"
-            Command="{Binding ViewModel.ProductsClearCommand, Mode=OneWay}">
-        </ui:Button>
-        <ui:Button
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="460, 0, 0, 0"
-            Content="全选/取消全选"
-            Icon="History24"
-            Command="{Binding ViewModel.VirtualAllSelectCommand, Mode=OneWay}">
-        </ui:Button>
-        <ui:DataGrid 
-            HorizontalAlignment="Center" 
-            Margin="0, 70, 0, 0" 
-            IsReadOnly="True" 
-            ItemsSource="{Binding ViewModel.ProductsCollection, Mode=TwoWay}">
-        </ui:DataGrid>
-    </Grid>
+    <Page.Resources>
+        <!-- 严重级别 → 颜色 -->
+        <Style x:Key="SeverityIndicator" TargetType="Ellipse">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Fill" Value="#55888888"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static models:FaultSeverity.Fault}">
+                    <Setter Property="Fill" Value="#FFDD3333"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static models:FaultSeverity.Warning}">
+                    <Setter Property="Fill" Value="#FFFFAA00"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static models:FaultSeverity.Info}">
+                    <Setter Property="Fill" Value="#FF4488FF"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="20">
+
+            <!-- ═══════ 连接 & 实时状态 ═══════ -->
+            <Border Margin="0,0,0,12" Padding="14" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding ViewModel.ConnectionInfo}" FontSize="15" FontWeight="Medium" VerticalAlignment="Center"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center">
+                            <Run Text="State: "/>
+                            <Run Text="{Binding ViewModel.CurrentStateName, Mode=OneWay}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                        <Border Width="1" Height="16" Margin="12,0" Background="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                        <TextBlock FontSize="14" FontFamily="Consolas" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center">
+                            <Run Text="SW: "/>
+                            <Run Text="{Binding ViewModel.StatusWordHex, Mode=OneWay}" FontWeight="Bold"/>
+                        </TextBlock>
+                        <Border Width="1" Height="16" Margin="12,0" Background="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                        <TextBlock FontSize="14" FontFamily="Consolas" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center">
+                            <Run Text="ErrReg: "/>
+                            <Run Text="{Binding ViewModel.ErrorRegisterHex, Mode=OneWay}" FontWeight="Bold"/>
+                        </TextBlock>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- ═══════ 实时告警指示 ═══════ -->
+            <ui:Card Margin="0,0,0,12" Padding="14">
+                <DockPanel LastChildFill="True">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- 故障指示 -->
+                        <Border Width="14" Height="14" CornerRadius="7" Margin="0,0,6,0"
+                                Background="{Binding ViewModel.HasFault, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=#55888888}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#55888888"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ViewModel.HasFault}" Value="True">
+                                            <Setter Property="Background" Value="#FFDD3333"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                        </Border>
+                        <TextBlock Text="Fault 故障" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,20,0"/>
+
+                        <!-- 警告指示 -->
+                        <Border Width="14" Height="14" CornerRadius="7" Margin="0,0,6,0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#55888888"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ViewModel.HasWarning}" Value="True">
+                                            <Setter Property="Background" Value="#FFFFAA00"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                        </Border>
+                        <TextBlock Text="Warning 警告" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                        <Run Text="记录数 Records: "/>
+                        <Run Text="{Binding ViewModel.FaultRecords.Count, Mode=OneWay}" FontWeight="Bold"/>
+                    </TextBlock>
+                </DockPanel>
+            </ui:Card>
+
+            <!-- ═══════ 操作按钮栏 ═══════ -->
+            <ui:Card Margin="0,0,0,12" Padding="14">
+                <WrapPanel HorizontalAlignment="Left">
+                    <ui:Button Content="读取历史故障 Read History"  Command="{Binding ViewModel.ReadHistoryCommand}"
+                               Icon="{ui:SymbolIcon History24}" Margin="0,0,8,4" MinWidth="180" Height="34"/>
+                    <ui:Button Content="故障复位 Fault Reset"      Command="{Binding ViewModel.FaultResetCommand}"
+                               Icon="{ui:SymbolIcon ArrowReset24}" Margin="0,0,8,4" MinWidth="160" Height="34" Appearance="Danger"/>
+
+                    <Border Width="1" Height="24" Margin="8,0" Background="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                    <ui:Button Content="清除设备故障 Clear Device"  Command="{Binding ViewModel.ClearDeviceErrorsCommand}"
+                               Icon="{ui:SymbolIcon Delete24}" Margin="0,0,8,4" MinWidth="180" Height="34" Appearance="Caution"/>
+                    <ui:Button Content="清除选中 Clear Selected"   Command="{Binding ViewModel.ClearSelectedCommand}"
+                               Icon="{ui:SymbolIcon DismissCircle24}" Margin="0,0,8,4" MinWidth="170" Height="34"/>
+                    <ui:Button Content="清除全部 Clear All"        Command="{Binding ViewModel.ClearAllCommand}"
+                               Icon="{ui:SymbolIcon DeleteDismiss24}" Margin="0,0,8,4" MinWidth="150" Height="34"/>
+                    <ui:Button Content="全选/取消 Select All"      Command="{Binding ViewModel.ToggleSelectAllCommand}"
+                               Icon="{ui:SymbolIcon CheckboxChecked24}" Margin="0,0,8,4" MinWidth="160" Height="34"/>
+                </WrapPanel>
+            </ui:Card>
+
+            <!-- ═══════ 故障记录表格 ═══════ -->
+            <ui:Card Margin="0,0,0,12" Padding="0">
+                <DataGrid ItemsSource="{Binding ViewModel.FaultRecords}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserSortColumns="True"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          BorderThickness="0"
+                          MinHeight="200"
+                          MaxHeight="500"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                        <!-- 选中 -->
+                        <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="36"/>
+                        <!-- 序号 -->
+                        <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="40" IsReadOnly="True"/>
+                        <!-- 级别指示 -->
+                        <DataGridTemplateColumn Header="级别 Level" Width="90" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                                        <Ellipse Style="{StaticResource SeverityIndicator}"/>
+                                        <TextBlock Text="{Binding Severity}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <!-- 时间 -->
+                        <DataGridTextColumn Header="时间 Time" Binding="{Binding Timestamp, StringFormat='HH:mm:ss.fff'}" Width="110" IsReadOnly="True"/>
+                        <!-- 来源 -->
+                        <DataGridTextColumn Header="来源 Source" Binding="{Binding Source}" Width="180" IsReadOnly="True"/>
+                        <!-- 错误码 -->
+                        <DataGridTextColumn Header="错误码 Code" Binding="{Binding CodeHex}" Width="90" IsReadOnly="True">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <!-- 中文描述 -->
+                        <DataGridTextColumn Header="描述 (中)" Binding="{Binding DescriptionCn}" Width="160" IsReadOnly="True"/>
+                        <!-- 英文描述 -->
+                        <DataGridTextColumn Header="Description (EN)" Binding="{Binding DescriptionEn}" Width="180" IsReadOnly="True"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ui:Card>
+
+            <!-- ═══════ 状态栏 ═══════ -->
+            <Border Padding="12" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                <TextBlock Text="{Binding ViewModel.OperationStatusText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
 </Page>

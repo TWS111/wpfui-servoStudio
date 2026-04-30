@@ -14,7 +14,7 @@ namespace Wpf.Ui.servoStudio.Views.Pages.DeviceSetPages;
 /// Interaction logic for DataView.xaml
 /// </summary>
 public partial class StartPage : INavigableView<StartViewModel>
-{   
+{
     public StartViewModel ViewModel { get; }
 
     public StartPage(StartViewModel viewModel,
@@ -24,6 +24,6 @@ public partial class StartPage : INavigableView<StartViewModel>
         DataContext = this;
 
         InitializeComponent();
-        
+
     }
 }

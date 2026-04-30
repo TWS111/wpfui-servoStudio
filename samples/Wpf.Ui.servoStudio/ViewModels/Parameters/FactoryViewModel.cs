@@ -20,14 +20,14 @@ namespace Wpf.Ui.servoStudio.ViewModels.Parameters;
 
 public partial class FactoryViewModel : ViewModel
 {
-    
+
     private bool _isInitialized = false;
-    private bool _isVirtualAllSelected = false;
-    FactoryParametersFillInfo _factoryParametersFill = new FactoryParametersFillInfo();
-    
+    private readonly bool _isVirtualAllSelected = false;
+    readonly FactoryParametersFillInfo _factoryParametersFill = new FactoryParametersFillInfo();
+
     [ObservableProperty]
     private TrulyObservableCollection<FactoryParameters> _factoryParametersCollection = new TrulyObservableCollection<FactoryParameters>();
-    
+
     [ObservableProperty]
     private ObservableCollection<FactoryParameters> _originalCollection = new ObservableCollection<FactoryParameters>();
 
@@ -51,38 +51,38 @@ public partial class FactoryViewModel : ViewModel
     {
         FactoryParametersCollection.Clear();
     }
-  
+
     private TrulyObservableCollection<FactoryParameters> GenerateProducts()
-    {        
+    {
         FactoryParametersCollection.CollectionChanged += _info_CollectionChanged;
-        
+
         for (int i = 0; i < FactoryParametersFillInfo.parametersFillinLength; i++)
         {
-            _factoryParametersCollection.Add(
+            FactoryParametersCollection.Add(
                 new FactoryParameters
                 {
                     Index = _factoryParametersFill.index[i],
                     IndexHex = _factoryParametersFill.indexHex[i],
                     Subscribe = _factoryParametersFill.subscribe[i],
-                    ParameterName  = _factoryParametersFill.varibleName[i],
+                    ParameterName = _factoryParametersFill.varibleName[i],
                     TypeUnit = (DataType)_factoryParametersFill.typeUnitIndex[i],
                     MinValue = _factoryParametersFill.minValue[i],
-                    MaxValue = _factoryParametersFill.maxValue[i], 
+                    MaxValue = _factoryParametersFill.maxValue[i],
                     DefaultValue = _factoryParametersFill.defaultValue[i],
                 }
             );
         }
 
-        return _factoryParametersCollection;
+        return FactoryParametersCollection;
     }
-       
+
     private void _info_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-    { 
+    {
         if (e.Action == NotifyCollectionChangedAction.Replace)
         {
             var inCollection = sender as TrulyObservableCollection<FactoryParameters>;
-            byte nowSlaveAddress = 0;
             int nowSlaveAddressIndex = Array.IndexOf(_factoryParametersFill.index, "H0C_01");
+            byte nowSlaveAddress;
             if (nowSlaveAddressIndex == -1)
             {
                 nowSlaveAddress = 0x03;
@@ -110,7 +110,7 @@ public partial class FactoryViewModel : ViewModel
 
     [RelayCommand]
     private void OnVirtualAllSelect()
-    {        
+    {
 
     }
 
@@ -132,7 +132,7 @@ public partial class FactoryViewModel : ViewModel
     }
 
     private void InitializeViewModel()
-    {       
+    {
         _isInitialized = true;
         FactoryParametersCollection = GenerateProducts();
         Thread sendComCheckFrame = new Thread(new ThreadStart(CheckingComBuffer));

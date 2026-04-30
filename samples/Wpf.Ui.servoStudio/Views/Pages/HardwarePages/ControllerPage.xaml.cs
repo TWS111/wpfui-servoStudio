@@ -3,13 +3,15 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Globalization;
+using System.Windows.Data;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.servoStudio.ViewModels.Hardware;
 
 namespace Wpf.Ui.servoStudio.Views.Pages.HardwarePages;
 
 /// <summary>
-/// Interaction logic for DataView.xaml
+/// Interaction logic for ControllerPage.xaml
 /// </summary>
 public partial class ControllerPage : INavigableView<ControllerViewModel>
 {
@@ -21,5 +23,21 @@ public partial class ControllerPage : INavigableView<ControllerViewModel>
         DataContext = this;
 
         InitializeComponent();
+    }
+}
+
+/// <summary>
+/// true → Collapsed, false → Visible
+/// </summary>
+public class InverseBooleanToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is Visibility.Collapsed;
     }
 }

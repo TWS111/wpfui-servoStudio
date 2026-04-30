@@ -1,0 +1,13 @@
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_base.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_coe.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_config.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_dc.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_foe.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_main.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_print.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_soe.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/ec_eoe.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/osal.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/nicdrv.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/oshw.obj
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/soemfoe.dir/RelWithDebInfo/soemfoe_wrapper.obj

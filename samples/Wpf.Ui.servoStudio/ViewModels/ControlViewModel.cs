@@ -5,6 +5,7 @@
 
 using System.Windows.Threading;
 using Core.Net.EtherCAT;
+using Wpf.Ui.servoStudio.Core;
 using Wpf.Ui.servoStudio.Models;
 using Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
@@ -79,6 +80,13 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
     // 防止循环触发的标志
     private bool _suppressControlWordSync = false;
 
+    // 用户正在编辑控制字
+    [ObservableProperty]
+    private bool _isEditingControlWord;
+
+    // 编辑前的控制字快照（用于放弃编辑时恢复）
+    private ushort _controlWordSnapshot;
+
     #endregion
 
     #region 快捷命令
@@ -111,6 +119,12 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
     }
 
     [RelayCommand]
+    private async Task OnCmdDisableOperation()
+    {
+        await WriteControlWordAsync(Cia402ControlCommands.DisableOperation, "Disable Operation");
+    }
+
+    [RelayCommand]
     private async Task OnCmdQuickStop()
     {
         await WriteControlWordAsync(Cia402ControlCommands.QuickStop, "Quick Stop");
@@ -122,22 +136,102 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
         await WriteControlWordAsync(Cia402ControlCommands.FaultReset, "Fault Reset");
     }
 
+    /// <summary>
+    /// 一键伺服使能：自动执行 Shutdown → SwitchOn → EnableOperation 完整上电序列。
+    /// 若当前处于 Fault 状态则先执行 FaultReset。
+    /// </summary>
+    [RelayCommand]
+    private async Task OnCmdQuickEnable()
+    {
+        if (!deviceAddViewModel.IsAnyConnected || Axis == null)
+        {
+            OperationStatusText = "设备未连接";
+            return;
+        }
+
+        OperationStatusText = "一键使能: 正在执行上电序列…";
+
+        // 读取当前状态字，判断是否需要先故障复位
+        ushort sw = 0;
+        _ = await Task.Run(() => Master.TryReadSDO(Axis.SlaveAddr, Cia402OdIndex.StatusWord, 0, out sw));
+        Cia402State state = Cia402StatusMasks.ParseState(sw);
+
+        if (state == Cia402State.Fault)
+        {
+            if (!await TryWriteControlWordStepAsync(Cia402ControlCommands.FaultReset, "Fault Reset"))
+                return;
+            await Task.Delay(50);
+        }
+
+        // Shutdown → ReadyToSwitchOn
+        if (!await TryWriteControlWordStepAsync(Cia402ControlCommands.Shutdown, "Shutdown"))
+            return;
+        await Task.Delay(30);
+
+        // SwitchOn → SwitchedOn
+        if (!await TryWriteControlWordStepAsync(Cia402ControlCommands.SwitchOn, "Switch On"))
+            return;
+        await Task.Delay(30);
+
+        // EnableOperation → OperationEnabled
+        if (!await TryWriteControlWordStepAsync(Cia402ControlCommands.EnableOperation, "Enable Operation"))
+            return;
+
+        await RefreshWordsAsync();
+        OperationStatusText = "一键使能: 伺服已进入运行使能状态";
+    }
+
+    /// <summary>
+    /// 序列步骤写入（不刷新 UI），成功返回 true。
+    /// </summary>
+    private async Task<bool> TryWriteControlWordStepAsync(ushort value, string stepName)
+    {
+        try
+        {
+            bool ok = await Task.Run(() =>
+                Master.TryWriteSDO(Axis!.SlaveAddr, Cia402OdIndex.ControlWord, 0, value));
+            if (!ok)
+            {
+                OperationStatusText = $"一键使能: {stepName} 写入失败";
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            OperationStatusText = $"一键使能: {stepName} 异常 — {ex.Message}";
+            return false;
+        }
+    }
+
     [RelayCommand]
     private async Task OnWriteControlWord()
     {
         await WriteControlWordAsync(BuildControlWordFromBits(), "手动写入");
     }
 
+    /// <summary>
+    /// 放弃编辑，恢复为设备当前控制字
+    /// </summary>
+    [RelayCommand]
+    private void OnDiscardEdit()
+    {
+        IsEditingControlWord = false;
+        SyncControlWordBitsFromRaw(_controlWordSnapshot);
+        OperationStatusText = "已放弃编辑，恢复设备值";
+    }
+
     #endregion
 
     #region EtherCAT 辅助
 
-    private EtherCATMaster Master => deviceAddViewModel.EcatMaster;
-    private EtherCATSlave_CiA402? Axis => deviceAddViewModel.CurrentAxis;
+    private IServoMaster Master => deviceAddViewModel.ActiveServoMaster;
+    private IServoAxis? Axis => deviceAddViewModel.ActiveAxis;
 
     private async Task WriteControlWordAsync(ushort value, string cmdName)
     {
-        if (!deviceAddViewModel.IsEthernetConnected || Axis == null)
+        if (!deviceAddViewModel.IsAnyConnected || Axis == null)
         {
             OperationStatusText = "设备未连接";
             return;
@@ -150,6 +244,7 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
 
             if (ok)
             {
+                IsEditingControlWord = false;
                 OperationStatusText = $"{cmdName} (0x{value:X4}) 写入成功";
                 // 立即刷新一次
                 await RefreshWordsAsync();
@@ -172,16 +267,16 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
     private ushort BuildControlWordFromBits()
     {
         ushort cw = 0;
-        if (CwBit0)  cw |= 1 << 0;
-        if (CwBit1)  cw |= 1 << 1;
-        if (CwBit2)  cw |= 1 << 2;
-        if (CwBit3)  cw |= 1 << 3;
-        if (CwBit4)  cw |= 1 << 4;
-        if (CwBit5)  cw |= 1 << 5;
-        if (CwBit6)  cw |= 1 << 6;
-        if (CwBit7)  cw |= 1 << 7;
-        if (CwBit8)  cw |= 1 << 8;
-        if (CwBit9)  cw |= 1 << 9;
+        if (CwBit0) cw |= 1 << 0;
+        if (CwBit1) cw |= 1 << 1;
+        if (CwBit2) cw |= 1 << 2;
+        if (CwBit3) cw |= 1 << 3;
+        if (CwBit4) cw |= 1 << 4;
+        if (CwBit5) cw |= 1 << 5;
+        if (CwBit6) cw |= 1 << 6;
+        if (CwBit7) cw |= 1 << 7;
+        if (CwBit8) cw |= 1 << 8;
+        if (CwBit9) cw |= 1 << 9;
         if (CwBit10) cw |= 1 << 10;
         if (CwBit11) cw |= 1 << 11;
         if (CwBit12) cw |= 1 << 12;
@@ -194,16 +289,16 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
     private void SyncControlWordBitsFromRaw(ushort cw)
     {
         _suppressControlWordSync = true;
-        CwBit0  = (cw & (1 << 0))  != 0;
-        CwBit1  = (cw & (1 << 1))  != 0;
-        CwBit2  = (cw & (1 << 2))  != 0;
-        CwBit3  = (cw & (1 << 3))  != 0;
-        CwBit4  = (cw & (1 << 4))  != 0;
-        CwBit5  = (cw & (1 << 5))  != 0;
-        CwBit6  = (cw & (1 << 6))  != 0;
-        CwBit7  = (cw & (1 << 7))  != 0;
-        CwBit8  = (cw & (1 << 8))  != 0;
-        CwBit9  = (cw & (1 << 9))  != 0;
+        CwBit0 = (cw & (1 << 0)) != 0;
+        CwBit1 = (cw & (1 << 1)) != 0;
+        CwBit2 = (cw & (1 << 2)) != 0;
+        CwBit3 = (cw & (1 << 3)) != 0;
+        CwBit4 = (cw & (1 << 4)) != 0;
+        CwBit5 = (cw & (1 << 5)) != 0;
+        CwBit6 = (cw & (1 << 6)) != 0;
+        CwBit7 = (cw & (1 << 7)) != 0;
+        CwBit8 = (cw & (1 << 8)) != 0;
+        CwBit9 = (cw & (1 << 9)) != 0;
         CwBit10 = (cw & (1 << 10)) != 0;
         CwBit11 = (cw & (1 << 11)) != 0;
         CwBit12 = (cw & (1 << 12)) != 0;
@@ -235,6 +330,14 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
     private void OnControlBitChanged()
     {
         if (_suppressControlWordSync) return;
+
+        // 用户首次修改 checkbox → 进入编辑模式，保存快照
+        if (!IsEditingControlWord)
+        {
+            _controlWordSnapshot = ControlWordRaw;
+            IsEditingControlWord = true;
+        }
+
         ControlWordRaw = BuildControlWordFromBits();
         ControlWordHex = $"0x{ControlWordRaw:X4}";
     }
@@ -245,16 +348,16 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
 
     private void SyncStatusWordBitsFromRaw(ushort sw)
     {
-        SwBit0  = (sw & (1 << 0))  != 0;
-        SwBit1  = (sw & (1 << 1))  != 0;
-        SwBit2  = (sw & (1 << 2))  != 0;
-        SwBit3  = (sw & (1 << 3))  != 0;
-        SwBit4  = (sw & (1 << 4))  != 0;
-        SwBit5  = (sw & (1 << 5))  != 0;
-        SwBit6  = (sw & (1 << 6))  != 0;
-        SwBit7  = (sw & (1 << 7))  != 0;
-        SwBit8  = (sw & (1 << 8))  != 0;
-        SwBit9  = (sw & (1 << 9))  != 0;
+        SwBit0 = (sw & (1 << 0)) != 0;
+        SwBit1 = (sw & (1 << 1)) != 0;
+        SwBit2 = (sw & (1 << 2)) != 0;
+        SwBit3 = (sw & (1 << 3)) != 0;
+        SwBit4 = (sw & (1 << 4)) != 0;
+        SwBit5 = (sw & (1 << 5)) != 0;
+        SwBit6 = (sw & (1 << 6)) != 0;
+        SwBit7 = (sw & (1 << 7)) != 0;
+        SwBit8 = (sw & (1 << 8)) != 0;
+        SwBit9 = (sw & (1 << 9)) != 0;
         SwBit10 = (sw & (1 << 10)) != 0;
         SwBit11 = (sw & (1 << 11)) != 0;
         SwBit12 = (sw & (1 << 12)) != 0;
@@ -271,7 +374,7 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
 
     private async Task RefreshWordsAsync()
     {
-        if (!deviceAddViewModel.IsEthernetConnected || Axis == null)
+        if (!deviceAddViewModel.IsAnyConnected || Axis == null)
         {
             IsConnected = false;
             ConnectionInfo = "设备未连接";
@@ -287,20 +390,25 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
             {
                 ushort statusWord = 0;
                 ushort controlWord = 0;
-                Master.TryReadSDO(Axis.SlaveAddr, Cia402OdIndex.StatusWord, 0, out statusWord);
-                Master.TryReadSDO(Axis.SlaveAddr, Cia402OdIndex.ControlWord, 0, out controlWord);
+                _ = Master.TryReadSDO(Axis.SlaveAddr, Cia402OdIndex.StatusWord, 0, out statusWord);
+                _ = Master.TryReadSDO(Axis.SlaveAddr, Cia402OdIndex.ControlWord, 0, out controlWord);
                 return (statusWord, controlWord);
             });
 
             StatusWordRaw = sw;
             SyncStatusWordBitsFromRaw(sw);
 
-            ControlWordRaw = cw;
-            SyncControlWordBitsFromRaw(cw);
+            // 用户正在编辑控制字时，不覆盖 checkbox 状态
+            if (!IsEditingControlWord)
+            {
+                ControlWordRaw = cw;
+                SyncControlWordBitsFromRaw(cw);
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // SDO 通信异常时静默，等待下次刷新
+            // SDO 通信异常时记录日志，等待下次刷新
+            AppData.AppLogViewModel.Log(Models.AppLogLevel.Warning, Models.AppLogCategory.SDO, "SDO 状态字/控制字读取异常", ex.Message);
         }
     }
 

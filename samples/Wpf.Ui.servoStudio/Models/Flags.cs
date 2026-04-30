@@ -8,5 +8,5 @@ namespace Wpf.Ui.servoStudio.Models;
 public static class Flags
 {
     public static bool isAutoSendReadFrameOn = false;
-    
+
 }

@@ -213,7 +213,89 @@
                     <TextBlock Text="CANopen" FontSize="16"/>
                 </TabItem.Header>
                 <Grid Margin="30,20,30,20">
-                    <!-- 预留 -->
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" MinWidth="120"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: 串口（USB-CAN 适配器） -->
+                    <Label Grid.Row="0" Grid.Column="0"
+                           Content="USB-CAN 串口：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1"
+                              Height="32"
+                              ItemsSource="{Binding ViewModel.ComboBoxPortNameFamilies, Mode=TwoWay}"
+                              SelectedIndex="{Binding ViewModel.ComboBoxPortNameSelect, Mode=TwoWay}"
+                              VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center" Margin="0,0,0,10">
+                        <ui:Button Content="连接 CANopen" Icon="Connector20"
+                                   Height="32" MinWidth="120"
+                                   Command="{Binding ViewModel.CanOpenConnectCommand, Mode=OneWay}"/>
+                        <ui:Button Content="断开" Icon="PlugDisconnected20"
+                                   Height="32" MinWidth="80" Margin="6,0,0,0"
+                                   Command="{Binding ViewModel.CanOpenDisconnectCommand, Mode=OneWay}"/>
+                        <Label Content="√" FontWeight="Bold" FontSize="22"
+                               Visibility="{Binding ViewModel.IsCanopenConnected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Hidden}"
+                               Foreground="#9E006D55" FontFamily="Segoe UI Black"
+                               VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Row 1: 比特率 -->
+                    <Label Grid.Row="1" Grid.Column="0"
+                           Content="比特率：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1"
+                              Height="32"
+                              ItemsSource="{Binding ViewModel.ComboBoxCanBitrateFamilies, Mode=TwoWay}"
+                              SelectedIndex="{Binding ViewModel.ComboBoxCanBitrateSelect, Mode=TwoWay}"
+                              VerticalAlignment="Center" Margin="0,0,8,10"/>
+
+                    <!-- Row 2: Node ID -->
+                    <Label Grid.Row="2" Grid.Column="0"
+                           Content="节点地址 (1~127)：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <ui:NumberBox Grid.Row="2" Grid.Column="1"
+                                  Height="32"
+                                  Minimum="1" Maximum="127"
+                                  Value="{Binding ViewModel.CanopenNodeId, Mode=TwoWay}"
+                                  VerticalAlignment="Center" Margin="0,0,8,10"/>
+
+                    <!-- Row 3: 节点名称 -->
+                    <Label Grid.Row="3" Grid.Column="0"
+                           Content="节点名称：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <Label Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3"
+                           Content="{Binding ViewModel.CanopenSlaveNameInfo, Mode=OneWay}"
+                           Foreground="#FF0066CC" FontSize="15" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="0,0,0,10"/>
+
+                    <!-- Row 4: 软件版本 -->
+                    <Label Grid.Row="4" Grid.Column="0"
+                           Content="软件版本：" FontSize="16"
+                           VerticalAlignment="Center" Margin="0,0,8,10"/>
+                    <Label Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"
+                           Content="{Binding ViewModel.CanopenFirmwareInfo, Mode=OneWay}"
+                           Foreground="#FF0066CC" FontSize="15" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="0,0,0,10"/>
+
+                    <!-- Row 5: 状态文本 -->
+                    <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="4"
+                               Text="{Binding ViewModel.CanopenStatusText, Mode=OneWay}"
+                               FontSize="14" Foreground="Gray"
+                               TextWrapping="Wrap" Margin="0,4,0,0"/>
                 </Grid>
             </TabItem>
 

@@ -3,8 +3,11 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using System.Windows.Threading;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Controls;
+using Wpf.Ui.servoStudio.Services;
+using Wpf.Ui.servoStudio.ViewModels.AppData;
 
 namespace Wpf.Ui.servoStudio.Views;
 
@@ -13,6 +16,9 @@ namespace Wpf.Ui.servoStudio.Views;
 /// </summary>
 public partial class MainWindow : INavigationWindow
 {
+    private readonly PageUsageTracker? _usageTracker;
+    private bool _firstHomeNavHandled = false;
+
     public ViewModels.MainWindowViewModel ViewModel { get; }
 
     public MainWindow(ViewModels.MainWindowViewModel viewModel,
@@ -30,6 +36,80 @@ public partial class MainWindow : INavigationWindow
 
         navigationService.SetNavigationControl(RootNavigation);
         contentDialogService.SetDialogHost(RootContentDialog);
+
+        // 解析 PageUsageTracker（用于在每次导航时记录访问次数）
+        try
+        {
+            _usageTracker = App.Services.GetService(typeof(PageUsageTracker)) as PageUsageTracker;
+        }
+        catch
+        {
+            _usageTracker = null;
+        }
+
+        // 订阅导航事件 → 写入应用日志（包含每个被打开的页面）
+        RootNavigation.Navigated += OnRootNavigated;
+
+        // 启动时默认最大化：在 SourceInitialized 后设置，避免 FluentWindow
+        // + ExtendsContentIntoTitleBar 在 XAML 阶段设置 WindowState=Maximized 导致
+        // 窗口顶部越过屏幕工作区的问题。
+        SourceInitialized += (_, _) => WindowState = WindowState.Maximized;
+    }
+
+    private void OnRootNavigated(NavigationView sender, NavigatedEventArgs args)
+    {
+        try
+        {
+            Type? pageType = args.Page?.GetType();
+            if (pageType is null)
+                return;
+
+            AppLogViewModel.LogNavigation(pageType);
+            _usageTracker?.RecordVisit(pageType);
+
+            // 首次进入首页：延迟 0.5s 展开所有一级菜单，0.8s 后自动收起
+            if (!_firstHomeNavHandled && pageType == typeof(Pages.HomePage))
+            {
+                _firstHomeNavHandled = true;
+                var delayTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+                delayTimer.Tick += (s, e) =>
+                {
+                    delayTimer.Stop();
+                    FlashExpandTopLevelMenus();
+                };
+                delayTimer.Start();
+            }
+        }
+        catch
+        {
+            // 日志/统计失败不应影响导航
+        }
+    }
+
+    private void FlashExpandTopLevelMenus()
+    {
+        var expanded = new System.Collections.Generic.List<NavigationViewItem>();
+        foreach (var obj in ViewModel.NavigationItems)
+        {
+            if (obj is NavigationViewItem nvi
+                && (nvi.MenuItemsSource != null || nvi.MenuItems.Count > 0))
+            {
+                nvi.IsExpanded = true;
+                expanded.Add(nvi);
+            }
+        }
+
+        if (expanded.Count == 0)
+            return;
+
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
+        timer.Tick += (s, e) =>
+        {
+            timer.Stop();
+            foreach (var nvi in expanded)
+                nvi.IsExpanded = false;
+        };
+        timer.Start();
     }
 
     public INavigationView GetNavigation() => RootNavigation;

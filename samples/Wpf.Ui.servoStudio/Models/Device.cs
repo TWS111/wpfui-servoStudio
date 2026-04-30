@@ -13,5 +13,5 @@ public class Device
 
     public int SlaveAddress { get; set; }
 
-    public Port PortMethud { get; set; }   
+    public Port PortMethud { get; set; }
 }

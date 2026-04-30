@@ -1,0 +1,3 @@
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/CMakeFiles/soemfoe.dir
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/CMakeFiles/ALL_BUILD.dir
+C:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/build/CMakeFiles/ZERO_CHECK.dir

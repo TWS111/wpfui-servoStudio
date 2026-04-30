@@ -14,7 +14,7 @@ using Wpf.Ui.servoStudio.Models;
 namespace Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
 public partial class StartViewModel(
-    IContentDialogService contentDialogService, 
+    IContentDialogService contentDialogService,
     INavigationService navigationService
     ) : ViewModel
 {
@@ -23,9 +23,8 @@ public partial class StartViewModel(
     [ObservableProperty]
     private ObservableCollection<Device> _devicesCollection = GenerateDeviceList();
 
-    private System.Type DialogResult;
+    private readonly System.Type DialogResult;
 
-   
     public override void OnNavigatedTo()
     {
         if (!_isInitialized)
@@ -37,7 +36,7 @@ public partial class StartViewModel(
     private static ObservableCollection<Device> GenerateDeviceList()
     {
         var random = new Random();
-        var devices = new ObservableCollection<Device> { };       
+        var devices = new ObservableCollection<Device> { };
         Port[] portMethod = [Port.EtherCAT, Port.CANopen, Port.Modbus];
 
         for (int i = 0; i < 5; i++)
@@ -46,7 +45,7 @@ public partial class StartViewModel(
                 new Device
                 {
                     Index = i,
-                    DeviceName ="COM" + random.Next(0, 20).ToString(),
+                    DeviceName = "COM" + random.Next(0, 20).ToString(),
                     SlaveAddress = random.Next(0, 20),
                     PortMethud = portMethod[random.Next(0, portMethod.Length)],
                 }
@@ -59,13 +58,13 @@ public partial class StartViewModel(
     [RelayCommand]
     private void OnPageSelect()
     {
-        
+
     }
 
     [RelayCommand]
-    private async Task OnShowDialog( Type type)
+    private async Task OnShowDialog(Type type)
     {
-        
+
         //ContentDialogResult result = await contentDialogService.ShowSimpleDialogAsync(
         //    new SimpleContentDialogCreateOptions()
         //    {
@@ -85,11 +84,11 @@ public partial class StartViewModel(
         //};
 
         _ = navigationService.Navigate(type);
-    }       
+    }
 
     private void InitializeViewModel()
-    {        
-        
+    {
+
         _isInitialized = true;
     }
 }

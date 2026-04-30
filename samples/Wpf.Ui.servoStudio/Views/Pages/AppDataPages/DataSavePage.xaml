@@ -1,0 +1,289 @@
+<Page
+    x:Class="Wpf.Ui.servoStudio.Views.Pages.AppDataPages.DataSavePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.AppDataPages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="clr-namespace:Wpf.Ui.servoStudio.Models"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="DataSavePage"
+    d:DataContext="{d:DesignInstance local:DataSavePage, IsDesignTimeCreatable=False}"
+    d:DesignHeight="800"
+    d:DesignWidth="1100"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    ScrollViewer.CanContentScroll="False"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Page.Resources>
+
+    <Grid Margin="18,8,18,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: 标题 -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock
+                FontSize="20"
+                FontWeight="SemiBold"
+                Text="数据存储" />
+            <TextBlock
+                Margin="12,0,0,0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding ViewModel.ConnectionInfo}" />
+        </StackPanel>
+
+        <!-- Row 1: 采样 / 本地存储配置 -->
+        <ui:Card Grid.Row="1" Margin="0,0,0,8" Padding="14">
+            <StackPanel>
+                <!-- 第一行：采样开关 + 各项数值配置 -->
+                <WrapPanel VerticalAlignment="Center" Margin="0,0,0,10">
+                    <ui:ToggleSwitch
+                        Margin="0,0,20,0"
+                        VerticalAlignment="Center"
+                        Content="启用本地存储"
+                        IsChecked="{Binding ViewModel.IsStorageEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Text="采样间隔(ms):" />
+                    <ui:NumberBox
+                        Width="150"
+                        Margin="0,0,20,0"
+                        Minimum="10"
+                        Maximum="60000"
+                        Value="{Binding ViewModel.SampleIntervalMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Text="最大样本数:" />
+                    <ui:NumberBox
+                        Width="150"
+                        Margin="0,0,20,0"
+                        Minimum="100"
+                        Maximum="10000000"
+                        Value="{Binding ViewModel.MaxSampleCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Text="单文件上限(MB):" />
+                    <ui:NumberBox
+                        Width="150"
+                        Margin="0,0,20,0"
+                        Minimum="1"
+                        Maximum="1024"
+                        Value="{Binding ViewModel.MaxFileSizeMb, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Text="存储格式:" />
+                    <ComboBox
+                        Width="110"
+                        Margin="0,0,0,0"
+                        ItemsSource="{Binding ViewModel.FormatOptions}"
+                        SelectedItem="{Binding ViewModel.SelectedFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </WrapPanel>
+
+                <!-- 第二行：存储目录 + 浏览 -->
+                <WrapPanel VerticalAlignment="Center" Margin="0,0,0,10">
+                    <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Text="本地目录:" />
+                    <TextBox
+                        Width="400"
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        IsReadOnly="True"
+                        Text="{Binding ViewModel.OutputDirectory, Mode=OneWay}" />
+                    <ui:Button
+                        Margin="0,0,0,0"
+                        Command="{Binding ViewModel.BrowseDirectoryCommand}"
+                        Content="浏览..."
+                        Icon="{ui:SymbolIcon Folder24}" />
+                </WrapPanel>
+
+                <!-- 第三行：操作按钮 -->
+                <WrapPanel VerticalAlignment="Center">
+                    <ui:Button
+                        Margin="0,0,8,0"
+                        Appearance="Primary"
+                        Command="{Binding ViewModel.StartSamplingCommand}"
+                        Content="开始采样"
+                        Icon="{ui:SymbolIcon Play24}" />
+                    <ui:Button
+                        Margin="0,0,8,0"
+                        Command="{Binding ViewModel.StopSamplingCommand}"
+                        Content="停止"
+                        Icon="{ui:SymbolIcon Stop24}" />
+                    <ui:Button
+                        Margin="0,0,8,0"
+                        Command="{Binding ViewModel.SnapshotOnceCommand}"
+                        Content="单次采集"
+                        Icon="{ui:SymbolIcon Camera24}" />
+                    <ui:Button
+                        Command="{Binding ViewModel.ClearSamplesCommand}"
+                        Content="清空统计"
+                        Icon="{ui:SymbolIcon Delete24}" />
+                </WrapPanel>
+            </StackPanel>
+        </ui:Card>
+
+        <!-- Row 2: 快速选择 -->
+        <ui:Card Grid.Row="2" Margin="0,0,0,8" Padding="10">
+            <WrapPanel>
+                <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontSize="12" Text="快速选择:" />
+                <ui:Button Margin="0,0,6,0" Command="{Binding ViewModel.SelectAllCommand}" Content="全选" />
+                <ui:Button Margin="0,0,6,0" Command="{Binding ViewModel.SelectNoneCommand}" Content="全不选" />
+                <ui:Button Margin="0,0,6,0" Command="{Binding ViewModel.SelectSlaveOnlyCommand}" Content="仅从机" />
+                <ui:Button Margin="0,0,6,0" Command="{Binding ViewModel.SelectMasterOnlyCommand}" Content="仅主机" />
+            </WrapPanel>
+        </ui:Card>
+
+        <!-- Row 3: 调试 - 测试数据生成（仅 Debug 模式下可见） -->
+        <ui:Card Grid.Row="3" Margin="0,0,0,8" Padding="12"
+                 Visibility="{Binding ViewModel.IsDebugMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
+                <WrapPanel VerticalAlignment="Center" Margin="0,0,0,6">
+                    <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Text="测试数据目录:" />
+                    <TextBox
+                        Width="400"
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        IsReadOnly="True"
+                        Text="{Binding ViewModel.TestDataDirectory, Mode=OneWay}" />
+                    <ui:Button
+                        Command="{Binding ViewModel.BrowseTestDataDirectoryCommand}"
+                        Content="浏览..."
+                        Icon="{ui:SymbolIcon Folder24}" />
+                </WrapPanel>
+                <WrapPanel VerticalAlignment="Center">
+                    <TextBlock
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                        Text="调试" />
+                    <ui:Button
+                        Margin="0,0,8,0"
+                        Appearance="Secondary"
+                        Command="{Binding ViewModel.GenerateTestDataCommand}"
+                        Content="生成测试数据"
+                        Icon="{ui:SymbolIcon Bug24}"
+                        ToolTip="使用随机游走生成 100/1k/10k/100k 行 × CSV/TSV/XLS/JSON 共 16 个测试文件" />
+                    <ui:Button
+                        Margin="0,0,12,0"
+                        Command="{Binding ViewModel.CancelTestDataCommand}"
+                        Content="取消"
+                        Icon="{ui:SymbolIcon Stop24}" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{Binding ViewModel.TestDataProgressText}"
+                        TextTrimming="CharacterEllipsis" />
+                </WrapPanel>
+                <ProgressBar
+                    Height="6"
+                    Margin="0,8,0,0"
+                    Maximum="100"
+                    Minimum="0"
+                    Visibility="{Binding ViewModel.IsGeneratingTestData, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Value="{Binding ViewModel.TestDataProgress, Mode=OneWay}" />
+            </StackPanel>
+        </ui:Card>
+
+        <!-- Row 4: 变量表 -->
+        <ui:Card Grid.Row="4" Padding="0">
+            <DataGrid
+                AutoGenerateColumns="False"
+                CanUserAddRows="False"
+                CanUserDeleteRows="False"
+                GridLinesVisibility="Horizontal"
+                HeadersVisibility="Column"
+                IsReadOnly="False"
+                ItemsSource="{Binding ViewModel.Variables}"
+                SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="60" Header="选择" CanUserSort="False">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn
+                        Width="90"
+                        Binding="{Binding SourceText}"
+                        Header="来源"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="120"
+                        Binding="{Binding Group}"
+                        Header="分组"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="200"
+                        Binding="{Binding Name}"
+                        Header="变量名"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="130"
+                        Binding="{Binding AddressText}"
+                        Header="地址"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding DataType}"
+                        Header="类型"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="60"
+                        Binding="{Binding Unit}"
+                        Header="单位"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding LastValue}"
+                        Header="最新值"
+                        IsReadOnly="True" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </ui:Card>
+
+        <!-- Row 5: 状态栏 -->
+        <Grid Grid.Row="5" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding ViewModel.StatusText}" />
+            <TextBlock
+                Grid.Column="1"
+                Margin="0,0,18,0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                <Run Text="当前文件: " />
+                <Run Text="{Binding ViewModel.CurrentFileName, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                <Run Text="样本数: " />
+                <Run Text="{Binding ViewModel.SampleCount, Mode=OneWay}" />
+            </TextBlock>
+        </Grid>
+    </Grid>
+</Page>

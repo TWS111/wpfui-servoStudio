@@ -4,13 +4,16 @@
 // All Rights Reserved.
 
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Threading;
 using Core.Net.EtherCAT;
+using Wpf.Ui.servoStudio.Core;
 using Wpf.Ui.servoStudio.Models;
 using Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
 namespace Wpf.Ui.servoStudio.ViewModels.Motion;
 
+[SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "Timer is lifecycle-managed via OnNavigatedFrom and StopCyclicSend")]
 public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) : ViewModel
 {
     private bool _isInitialized = false;
@@ -44,6 +47,135 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
 
     [ObservableProperty]
     private bool _isBusy = false;
+
+    #endregion
+
+    #region 周期同步发送
+
+    private readonly DispatcherTimer _cyclicSendTimer = new();
+    private int _cyclicSendCycleCount = 0;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartCyclicSendCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopCyclicSendCommand))]
+    private bool _isCyclicSendRunning = false;
+
+    /// <summary>周期发送间隔 (ms)，最小 1 ms</summary>
+    [ObservableProperty] private double _cyclicSendIntervalMs = 20;
+
+    [ObservableProperty] private string _cyclicSendLastError = string.Empty;
+    [ObservableProperty] private int _cyclicSendCycleCountDisplay = 0;
+
+    private bool _isLoadingMotionSettings;
+    partial void OnCyclicSendIntervalMsChanged(double value)
+    {
+        if (_isLoadingMotionSettings) return;
+        try
+        {
+            var s = Services.UserSettingsService.Load();
+            s.Motion_CyclicSendIntervalMs = value;
+            Services.UserSettingsService.Save(s);
+        }
+        catch { }
+    }
+
+    private bool IsCsMode => SelectedOperationMode is
+        Cia402OperationMode.CyclicSynchronousPosition or
+        Cia402OperationMode.CyclicSynchronousVelocity or
+        Cia402OperationMode.CyclicSynchronousTorque;
+
+    private bool CanStartCyclicSend() => IsConnected && IsCsMode && !IsCyclicSendRunning;
+    private bool CanStopCyclicSend() => IsCyclicSendRunning;
+
+    [RelayCommand(CanExecute = nameof(CanStartCyclicSend))]
+    private void OnStartCyclicSend()
+    {
+        if (IsCyclicSendRunning)
+            return;
+
+        _cyclicSendTimer.Stop();
+        _cyclicSendTimer.Tick -= CyclicSendTimerTick;
+        _cyclicSendTimer.Tick += CyclicSendTimerTick;
+
+        _cyclicSendCycleCount = 0;
+        CyclicSendCycleCountDisplay = 0;
+        CyclicSendLastError = string.Empty;
+
+        int intervalMs = Math.Max(1, (int)CyclicSendIntervalMs);
+        _cyclicSendTimer.Interval = TimeSpan.FromMilliseconds(intervalMs);
+        _cyclicSendTimer.Start();
+        IsCyclicSendRunning = true;
+        OperationStatusText = $"周期发送已启动 — 间隔 {intervalMs} ms";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanStopCyclicSend))]
+    private void OnStopCyclicSend()
+    {
+        StopCyclicSend();
+    }
+
+    private void StopCyclicSend()
+    {
+        _cyclicSendTimer.Stop();
+        _cyclicSendTimer.Tick -= CyclicSendTimerTick;
+        if (IsCyclicSendRunning)
+        {
+            IsCyclicSendRunning = false;
+            OperationStatusText = $"周期发送已停止，共发送 {_cyclicSendCycleCount} 帧";
+        }
+    }
+
+    private void CyclicSendTimerTick(object? sender, EventArgs e)
+    {
+        if (!IsConnected || !IsCsMode)
+        {
+            StopCyclicSend();
+            return;
+        }
+
+        var errors = new List<string>();
+        switch (SelectedOperationMode)
+        {
+            case Cia402OperationMode.CyclicSynchronousPosition:
+                // 测试模式：在本次发送前按步长累加目标位置
+                if (CspTestModeEnabled)
+                {
+                    double step = CspTestPositionStep ?? 0;
+                    double next = (CspTargetPosition ?? 0) + step;
+                    // 钳位到 INT32 范围，防止溢出
+                    if (next > int.MaxValue) next = int.MaxValue;
+                    else if (next < int.MinValue) next = int.MinValue;
+                    CspTargetPosition = next;
+                }
+
+                SafeWriteSdo<int>(Cia402OdIndex.TargetPosition, 0, (int)(CspTargetPosition ?? 0), errors, "目标位置");
+                SafeWriteSdo<int>(Cia402OdIndex.VelocityOffset, 0, (int)(CspVelocityOffset ?? 0), errors, "速度前馈");
+                SafeWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CspTorqueOffset ?? 0), errors, "转矩前馈");
+                break;
+            case Cia402OperationMode.CyclicSynchronousVelocity:
+                SafeWriteSdo<int>(Cia402OdIndex.TargetVelocity, 0, (int)(CsvTargetVelocity ?? 0), errors, "目标速度");
+                SafeWriteSdo<int>(Cia402OdIndex.VelocityOffset, 0, (int)(CsvVelocityOffset ?? 0), errors, "速度前馈");
+                SafeWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CsvTorqueOffset ?? 0), errors, "转矩前馈");
+                break;
+            case Cia402OperationMode.CyclicSynchronousTorque:
+                SafeWriteSdo<short>(Cia402OdIndex.TargetTorque, 0, (short)(CstTargetTorque ?? 0), errors, "目标转矩");
+                SafeWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CstTorqueOffset ?? 0), errors, "转矩前馈");
+                break;
+            default:
+                StopCyclicSend();
+                return;
+        }
+
+        _cyclicSendCycleCount++;
+        int count = _cyclicSendCycleCount;
+        CyclicSendCycleCountDisplay = count;
+        if (errors.Count > 0)
+            CyclicSendLastError = $"帧#{count} 失败: {string.Join("; ", errors)}";
+        if (count % 100 == 0)
+            OperationStatusText = errors.Count > 0
+                ? $"周期发送中 — 第 {count} 帧，本帧失败: {string.Join("; ", errors)}"
+                : $"周期发送中 — 已发送 {count} 帧";
+    }
 
     #endregion
 
@@ -146,6 +278,12 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
     [ObservableProperty] private double? _cspTorqueOffset = 0;
     [ObservableProperty] private double? _cspInterpolationTimePeriod = 0;
 
+    /// <summary>CSP 测试模式使能：启用后，每个周期向目标位置累加固定增量。</summary>
+    [ObservableProperty] private bool _cspTestModeEnabled = false;
+
+    /// <summary>CSP 测试模式——每个发送周期的目标位置增量 (counts)。可为负值表示反向。</summary>
+    [ObservableProperty] private double? _cspTestPositionStep = 1000;
+
     #endregion
 
     #region 周期同步速度 (CSV) — 0x60FF / 0x60B1 / 0x60B2 / 0x60C2
@@ -211,9 +349,9 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
 
     #region EtherCAT 辅助
 
-    private EtherCATMaster Master => deviceAddViewModel.EcatMaster;
-    private EtherCATSlave_CiA402? Axis => deviceAddViewModel.CurrentAxis;
-    private bool IsConnected => deviceAddViewModel.IsEthernetConnected && Axis != null;
+    private IServoMaster Master => deviceAddViewModel.ActiveServoMaster;
+    private IServoAxis? Axis => deviceAddViewModel.ActiveAxis;
+    private bool IsConnected => deviceAddViewModel.IsAnyConnected && Axis != null;
 
     /// <summary>
     /// 通过 SDO 将值写入从站对象字典
@@ -239,6 +377,22 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
     }
 
     #endregion
+
+    /// <summary>
+    /// 带异常隔离的 SDO 写入 — 单个参数失败不影响批次中其他参数
+    /// </summary>
+    private void SafeWriteSdo<T>(ushort index, byte subIndex, T value, List<string> errors, string name) where T : struct
+    {
+        try
+        {
+            if (!TryWriteSdo<T>(index, subIndex, value))
+                errors.Add(name);
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"{name}(异常:{ex.Message})");
+        }
+    }
 
     #region 命令
 
@@ -293,6 +447,7 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
         catch (Exception ex)
         {
             OperationStatusText = $"切换运行模式异常: {ex.Message}";
+            AppData.AppLogViewModel.Log(Models.AppLogLevel.Error, Models.AppLogCategory.EtherCAT, "切换运行模式异常", ex.Message);
         }
         finally
         {
@@ -365,6 +520,7 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
         catch (Exception ex)
         {
             OperationStatusText = $"参数下发异常: {ex.Message}";
+            AppData.AppLogViewModel.Log(Models.AppLogLevel.Error, Models.AppLogCategory.Parameter, "参数下发异常", ex.Message);
         }
         finally
         {
@@ -441,38 +597,26 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
 
     private void WriteCspParameters(List<string> errors)
     {
-        if (!TryWriteSdo<int>(Cia402OdIndex.TargetPosition, 0, (int)(CspTargetPosition ?? 0)))
-            errors.Add("目标位置 (0x607A)");
-        if (!TryWriteSdo<int>(Cia402OdIndex.PositionOffset, 0, (int)(CspPositionOffset ?? 0)))
-            errors.Add("位置前馈 (0x60B0)");
-        if (!TryWriteSdo<int>(Cia402OdIndex.VelocityOffset, 0, (int)(CspVelocityOffset ?? 0)))
-            errors.Add("速度前馈 (0x60B1)");
-        if (!TryWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CspTorqueOffset ?? 0)))
-            errors.Add("转矩前馈 (0x60B2)");
-        if (!TryWriteSdo<uint>(Cia402OdIndex.InterpolationTimePeriod, 1, (uint)(CspInterpolationTimePeriod ?? 0)))
-            errors.Add("插补周期 (0x60C2)");
+        SafeWriteSdo<int>(Cia402OdIndex.TargetPosition, 0, (int)(CspTargetPosition ?? 0), errors, "目标位置 (0x607A)");
+        SafeWriteSdo<int>(Cia402OdIndex.PositionOffset, 0, (int)(CspPositionOffset ?? 0), errors, "位置前馈 (0x60B0)");
+        SafeWriteSdo<int>(Cia402OdIndex.VelocityOffset, 0, (int)(CspVelocityOffset ?? 0), errors, "速度前馈 (0x60B1)");
+        SafeWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CspTorqueOffset ?? 0), errors, "转矩前馈 (0x60B2)");
+        SafeWriteSdo<uint>(Cia402OdIndex.InterpolationTimePeriod, 1, (uint)(CspInterpolationTimePeriod ?? 0), errors, "插补周期 (0x60C2)");
     }
 
     private void WriteCsvParameters(List<string> errors)
     {
-        if (!TryWriteSdo<int>(Cia402OdIndex.TargetVelocity, 0, (int)(CsvTargetVelocity ?? 0)))
-            errors.Add("目标速度 (0x60FF)");
-        if (!TryWriteSdo<int>(Cia402OdIndex.VelocityOffset, 0, (int)(CsvVelocityOffset ?? 0)))
-            errors.Add("速度前馈 (0x60B1)");
-        if (!TryWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CsvTorqueOffset ?? 0)))
-            errors.Add("转矩前馈 (0x60B2)");
-        if (!TryWriteSdo<uint>(Cia402OdIndex.InterpolationTimePeriod, 1, (uint)(CsvInterpolationTimePeriod ?? 0)))
-            errors.Add("插补周期 (0x60C2)");
+        SafeWriteSdo<int>(Cia402OdIndex.TargetVelocity, 0, (int)(CsvTargetVelocity ?? 0), errors, "目标速度 (0x60FF)");
+        SafeWriteSdo<int>(Cia402OdIndex.VelocityOffset, 0, (int)(CsvVelocityOffset ?? 0), errors, "速度前馈 (0x60B1)");
+        SafeWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CsvTorqueOffset ?? 0), errors, "转矩前馈 (0x60B2)");
+        SafeWriteSdo<uint>(Cia402OdIndex.InterpolationTimePeriod, 1, (uint)(CsvInterpolationTimePeriod ?? 0), errors, "插补周期 (0x60C2)");
     }
 
     private void WriteCstParameters(List<string> errors)
     {
-        if (!TryWriteSdo<short>(Cia402OdIndex.TargetTorque, 0, (short)(CstTargetTorque ?? 0)))
-            errors.Add("目标转矩 (0x6071)");
-        if (!TryWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CstTorqueOffset ?? 0)))
-            errors.Add("转矩前馈 (0x60B2)");
-        if (!TryWriteSdo<uint>(Cia402OdIndex.InterpolationTimePeriod, 1, (uint)(CstInterpolationTimePeriod ?? 0)))
-            errors.Add("插补周期 (0x60C2)");
+        SafeWriteSdo<short>(Cia402OdIndex.TargetTorque, 0, (short)(CstTargetTorque ?? 0), errors, "目标转矩 (0x6071)");
+        SafeWriteSdo<short>(Cia402OdIndex.TorqueOffset, 0, (short)(CstTorqueOffset ?? 0), errors, "转矩前馈 (0x60B2)");
+        SafeWriteSdo<uint>(Cia402OdIndex.InterpolationTimePeriod, 1, (uint)(CstInterpolationTimePeriod ?? 0), errors, "插补周期 (0x60C2)");
     }
 
     #endregion
@@ -569,14 +713,20 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
             // 查找枚举值对应的索引
             int idx = Array.IndexOf(HomingMethodMap, (Cia402HomingMethod)method);
             if (idx >= 0)
-                Application.Current.Dispatcher.Invoke(() => HmMethodIndex = idx);
+                Application.Current.Dispatcher.Invoke(() => SetHmMethodIndex(idx));
         }
+
         if (TryReadSdo<uint>(Cia402OdIndex.HomingSpeeds, 1, out var searchSpd))
             HmSpeedDuringSearch = searchSpd;
         if (TryReadSdo<uint>(Cia402OdIndex.HomingSpeeds, 2, out var zeroSpd))
             HmSpeedDuringZero = zeroSpd;
         if (TryReadSdo<uint>(Cia402OdIndex.HomingAcceleration, 0, out var acc))
             HmHomingAcceleration = acc;
+    }
+
+    private void SetHmMethodIndex(int idx)
+    {
+        HmMethodIndex = idx;
     }
 
     private void ReadIpParameters()
@@ -636,9 +786,30 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
         _ = RefreshConnectionAndReadModeAsync();
     }
 
+    public override void OnNavigatedFrom()
+    {
+        StopCyclicSend();
+    }
+
     private void InitializeViewModel()
     {
         _isInitialized = true;
+
+        // 加载用户保存的周期发送间隔
+        try
+        {
+            var savedInterval = Services.UserSettingsService.Load().Motion_CyclicSendIntervalMs;
+            if (savedInterval >= 1)
+            {
+                _isLoadingMotionSettings = true;
+                try { CyclicSendIntervalMs = savedInterval; }
+                finally { _isLoadingMotionSettings = false; }
+            }
+        }
+        catch
+        {
+            // ignore
+        }
 
         // 填充原点回归方法列表
         HmMethodItems.Clear();
@@ -712,6 +883,7 @@ public partial class MotionTypeViewModel(DeviceAddViewModel deviceAddViewModel) 
         catch (Exception ex)
         {
             OperationStatusText = $"读取运行模式失败: {ex.Message}";
+            AppData.AppLogViewModel.Log(Models.AppLogLevel.Error, Models.AppLogCategory.EtherCAT, "读取运行模式失败", ex.Message);
         }
     }
 

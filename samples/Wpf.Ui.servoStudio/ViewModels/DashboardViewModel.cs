@@ -11,7 +11,7 @@ namespace Wpf.Ui.servoStudio.ViewModels;
 public partial class DashboardViewModel : ViewModel
 {
     private bool _isInitialized = false;
-    
+
     public override void OnNavigatedTo()
     {
         if (!_isInitialized)

@@ -7,7 +7,7 @@ namespace Wpf.Ui.servoStudio.ViewModels;
 
 public partial class PortViewModel : ViewModel
 {
-    
+
     private bool _isInitialized = false;
 
     public override void OnNavigatedTo()
@@ -19,11 +19,11 @@ public partial class PortViewModel : ViewModel
     }
 
     private void InitializeViewModel()
-    {        
+    {
         _isInitialized = true;
-        
-    }  
-    
+
+    }
+
     private void OnPortReceive()
     {
         // Handle port receive logic here

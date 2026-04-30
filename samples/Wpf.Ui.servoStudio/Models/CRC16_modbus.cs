@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace Wpf.Ui.servoStudio.Models;
 
 internal class CRC16_modbus
-{    
+{
     public static class CRC16
     {
         /// <summary>
@@ -37,6 +37,7 @@ internal class CRC16_modbus
                     {
                         crc = crc ^ 0xa001;
                     }
+
                     crc = crc & 0xffff;
                 }
             }
@@ -63,6 +64,7 @@ internal class CRC16_modbus
             {
                 bytedata.Add(byte.Parse(str, System.Globalization.NumberStyles.AllowHexSpecifier));
             }
+
             byte[] crcbuf = bytedata.ToArray();
             //crc计算赋初始值
             return CRCCalc(crcbuf);

@@ -1,0 +1,43 @@
+flowchart TD
+    A[用户点击开始写入] --> B{ESI文件已选择且设备已连接且soemfoe.dll可用?}
+    B -->|否| B1[提示错误并返回]
+    B -->|是| C[停止从站状态轮询]
+    C --> D{文件扩展名?}
+
+    D -->|.xml| E1[EsiToSiiConverter.ConvertToSii]
+    D -->|.bin 或 .sii| E2[直接读取二进制文件]
+
+    subgraph ESIConvert [ESI XML 转 SII 二进制]
+        X1[解析 Vendor/Device/Eeprom 信息] --> X2[构建 SII Header 含 ConfigData 和 BootStrap]
+        X2 --> X3[构建 Strings Category]
+        X3 --> X4[构建 General/FMMU/SM/PDO Category]
+        X4 --> X5[写入 END Category 0x7FFF]
+        X5 --> X6[返回 byte 数组]
+    end
+
+    E1 --> X1
+    X6 --> F
+    E2 --> F
+
+    F[暂停 Leal 主站] --> F1[WriteState 切至 INIT]
+    F1 --> F2[StopActivity 释放网卡]
+    F2 --> G[调用 SoemFoEInterop.ExecuteEepromWrite]
+
+    subgraph EEPROMWrite [独立 SOEM 上下文写入 EEPROM]
+        G1[soemfoe_alloc_context] --> G2[ecx_init 初始化网卡]
+        G2 --> G3[ecx_config_init 扫描从站]
+        G3 --> G4[切换从站至 INIT]
+        G4 --> G5[byte数组转ushort数组 little-endian]
+        G5 --> G6[分批写入EEPROM 每批64words soemfoe_write_eeprom]
+        G6 --> G7{全部写入成功?}
+        G7 -->|否| G8[返回失败及错误信息]
+        G7 -->|是| G9[返回成功及写入word数]
+    end
+
+    G --> G1
+    G8 --> H
+    G9 --> H
+
+    H[ecx_close 并释放 context] --> I[恢复 Leal 主站 StartActivity]
+    I --> J[回读从站状态]
+    J --> K[恢复从站状态轮询并记录 AppLog]

@@ -14,7 +14,7 @@ public partial class FSMViewModel : ViewModel
     [ObservableProperty]
     private int _counter = 0;
 
-    private bool _isInitialized = false;        
+    private bool _isInitialized = false;
 
     public override void OnNavigatedTo()
     {
@@ -25,7 +25,7 @@ public partial class FSMViewModel : ViewModel
     }
     private void InitializeViewModel()
     {
-        
+
         _isInitialized = true;
     }
 }

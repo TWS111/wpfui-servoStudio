@@ -10,11 +10,41 @@
     <NoWarn>$(NoWarn);SA1601</NoWarn>
   </PropertyGroup>
 
+  <!-- servoStudio 独立版本号（从 version.txt 读取） -->
+  <Target Name="ReadVersionFile" BeforeTargets="IncrementVersion;BeforeBuild">
+    <ReadLinesFromFile File="$(MSBuildProjectDirectory)\version.txt">
+      <Output TaskParameter="Lines" PropertyName="StudioVersionFromFile" />
+    </ReadLinesFromFile>
+  </Target>
+
+  <Target Name="IncrementVersion" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -ExecutionPolicy Bypass -NoProfile -File &quot;$(MSBuildProjectDirectory)\increment-version.ps1&quot; -Configuration $(Configuration) -VersionFile &quot;$(MSBuildProjectDirectory)\version.txt&quot;" />
+    <!-- 重新读取更新后的版本 -->
+    <ReadLinesFromFile File="$(MSBuildProjectDirectory)\version.txt">
+      <Output TaskParameter="Lines" PropertyName="StudioVersion" />
+    </ReadLinesFromFile>
+    <Message Text="servoStudio version: $(StudioVersion)" Importance="high" />
+    <!-- 将版本写入程序集 -->
+    <CreateProperty Value="$(StudioVersion)">
+      <Output TaskParameter="Value" PropertyName="Version" />
+    </CreateProperty>
+    <CreateProperty Value="$(StudioVersion)">
+      <Output TaskParameter="Value" PropertyName="AssemblyVersion" />
+    </CreateProperty>
+    <CreateProperty Value="$(StudioVersion)">
+      <Output TaskParameter="Value" PropertyName="FileVersion" />
+    </CreateProperty>
+    <CreateProperty Value="$(StudioVersion)">
+      <Output TaskParameter="Value" PropertyName="InformationalVersion" />
+    </CreateProperty>
+  </Target>
+
   <ItemGroup>
     <Content Include="applicationIcon.ico" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AUTD3Sharp.Link.SOEM" />
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="CalcBinding" />
     <PackageReference Include="Leal.Core" />
@@ -60,5 +90,17 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="ViewModels\AppData\" />
+    <Folder Include="Views\Pages\AppDataPages\" />
+  </ItemGroup>
+
+  <!-- OTA 打包工具: 每次生成时将 Models\ota_pack_tool 完整复制到输出目录，并清理临时文件 -->
+  <Target Name="CopyOtaPackTool" AfterTargets="Build">
+    <Exec Command="robocopy &quot;$(MSBuildProjectDirectory)\Models\ota_pack_tool&quot; &quot;$(OutputPath)ota_pack_tool&quot; /MIR /NJH /NJS /NP /NFL /NDL" IgnoreExitCode="true" />
+    <Delete Files="$(OutputPath)ota_pack_tool\demo.bin" Condition="Exists('$(OutputPath)ota_pack_tool\demo.bin')" />
+    <Delete Files="$(OutputPath)ota_pack_tool\update_sign.bin" Condition="Exists('$(OutputPath)ota_pack_tool\update_sign.bin')" />
+  </Target>
 
 </Project>

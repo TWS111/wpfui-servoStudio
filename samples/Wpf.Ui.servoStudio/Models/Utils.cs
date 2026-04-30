@@ -22,7 +22,7 @@ public class TrulyObservableCollection<T> : ObservableCollection<T>
     {
         if (e.NewItems != null)
         {
-            foreach (Object item in e.NewItems)
+            foreach (object item in e.NewItems)
             {
                 (item as INotifyPropertyChanged).PropertyChanged += item_PropertyChanged;
             }
@@ -30,7 +30,7 @@ public class TrulyObservableCollection<T> : ObservableCollection<T>
 
         if (e.OldItems != null)
         {
-            foreach (Object item in e.OldItems)
+            foreach (object item in e.OldItems)
             {
                 (item as INotifyPropertyChanged).PropertyChanged -= item_PropertyChanged;
             }
@@ -56,4 +56,3 @@ public class TrulyObservableCollection<T> : ObservableCollection<T>
         }
     }
 }
-

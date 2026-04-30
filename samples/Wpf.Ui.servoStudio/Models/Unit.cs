@@ -29,7 +29,7 @@ public enum DataType
     uint16,
     int16,
     uint32,
-    int32,    
+    int32,
 }
 
 public enum Unit

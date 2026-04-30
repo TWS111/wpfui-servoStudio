@@ -50,7 +50,7 @@ public enum SerialPortTransmitFault
 public class SerialPortFaultInfo
 {
     public SerialPortTransmitFault faultName;
-    public int[] faultCount = new int[(int)SerialPortTransmitFault.EOE];    
+    public int[] faultCount = new int[(int)SerialPortTransmitFault.EOE];
 }
 
 public class SerialPortFrameInfo

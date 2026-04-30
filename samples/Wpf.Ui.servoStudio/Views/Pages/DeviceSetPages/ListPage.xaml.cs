@@ -14,7 +14,7 @@ namespace Wpf.Ui.servoStudio.Views.Pages.DeviceSetPages;
 /// Interaction logic for DataView.xaml
 /// </summary>
 public partial class ListPage : INavigableView<ListViewModel>
-{   
+{
     public ListViewModel ViewModel { get; }
 
     public ListPage(ListViewModel viewModel,
@@ -24,6 +24,6 @@ public partial class ListPage : INavigableView<ListViewModel>
         DataContext = this;
 
         InitializeComponent();
-        
+
     }
 }

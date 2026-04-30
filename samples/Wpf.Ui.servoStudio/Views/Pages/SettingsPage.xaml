@@ -18,6 +18,7 @@
     mc:Ignorable="d">
     <Page.Resources>
         <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Page.Resources>
 
     <StackPanel Margin="42">
@@ -30,16 +31,158 @@
             Margin="0,12,0,0"
             Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
             CommandParameter="theme_light"
-            Content="Light"
+            Content="浅色 (Light)"
             GroupName="themeSelect"
             IsChecked="{Binding ViewModel.CurrentApplicationTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=OneWay}" />
         <RadioButton
             Margin="0,8,0,0"
             Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
             CommandParameter="theme_dark"
-            Content="Drak"
+            Content="深色 (Dark)"
             GroupName="themeSelect" 
             IsChecked="{Binding ViewModel.CurrentApplicationTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=OneWay}" />
+        <RadioButton
+            Margin="0,8,0,0"
+            Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
+            CommandParameter="theme_system"
+            Content="跟随系统 (Follow System)"
+            GroupName="themeSelect"
+            IsChecked="{Binding ViewModel.IsFollowingSystemTheme, Mode=OneWay}" />
+
+        <TextBlock
+            Margin="0,24,0,0"
+            FontSize="20"
+            FontWeight="Medium"
+            Text="厂家权限" />
+        <TextBlock Margin="0,12,0,0"
+                   Text="输入厂家密码解锁“厂家参数”等页面（仅当前会话有效，不会保存）"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                   FontSize="12" />
+
+        <!--  状态徽章  -->
+        <Border x:Name="FactoryStatusBadge"
+                Margin="0,10,0,0"
+                Padding="10,4"
+                HorizontalAlignment="Left"
+                CornerRadius="10">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ViewModel.FactoryStatusKind}" Value="Unlocked">
+                            <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding ViewModel.FactoryStatusKind}" Value="LockedOut">
+                            <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel Orientation="Horizontal">
+                <ui:SymbolIcon Margin="0,0,6,0"
+                               VerticalAlignment="Center"
+                               FontSize="14">
+                    <ui:SymbolIcon.Style>
+                        <Style TargetType="ui:SymbolIcon">
+                            <Setter Property="Symbol" Value="LockClosed24" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ViewModel.FactoryStatusKind}" Value="Unlocked">
+                                    <Setter Property="Symbol" Value="LockOpen24" />
+                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ViewModel.FactoryStatusKind}" Value="LockedOut">
+                                    <Setter Property="Symbol" Value="ShieldError24" />
+                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ui:SymbolIcon.Style>
+                </ui:SymbolIcon>
+                <TextBlock VerticalAlignment="Center"
+                           FontSize="12"
+                           FontWeight="Medium"
+                           Text="{Binding ViewModel.FactoryStatusText}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ViewModel.FactoryStatusKind}" Value="Unlocked">
+                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ViewModel.FactoryStatusKind}" Value="LockedOut">
+                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+            <ui:PasswordBox x:Name="FactoryPasswordBox"
+                            Width="200"
+                            IsEnabled="{Binding ViewModel.CanInputFactoryPassword}"
+                            PlaceholderText="输入厂家密码">
+                <ui:PasswordBox.Style>
+                    <Style TargetType="ui:PasswordBox" BasedOn="{StaticResource {x:Type ui:PasswordBox}}">
+                        <Style.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ui:PasswordBox.Style>
+            </ui:PasswordBox>
+            <ui:Button x:Name="FactoryUnlockButton"
+                       Margin="8,0,0,0"
+                       Height="32"
+                       Click="FactoryUnlockButton_Click"
+                       IsEnabled="{Binding ViewModel.CanInputFactoryPassword}">
+                <ui:Button.Style>
+                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                        <Setter Property="Appearance" Value="Primary" />
+                        <Setter Property="Content" Value="确认" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ViewModel.IsFactoryLockedOut}" Value="True">
+                                <Setter Property="Appearance" Value="Danger" />
+                                <Setter Property="Content" Value="已锁定" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ViewModel.IsFactoryUnlocked}" Value="True">
+                                <Setter Property="Appearance" Value="Secondary" />
+                                <Setter Property="Content" Value="已解锁" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ui:Button.Style>
+            </ui:Button>
+            <ui:Button x:Name="FactoryLockButton"
+                       Margin="8,0,0,0"
+                       Height="32"
+                       Appearance="Caution"
+                       Content="锁定"
+                       Command="{Binding ViewModel.LockFactoryCommand, Mode=OneWay}"
+                       Visibility="{Binding ViewModel.IsFactoryUnlocked, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+        <TextBlock Margin="0,6,0,0"
+                   FontSize="15"
+                   Text="{Binding ViewModel.FactoryUnlockMessage, Mode=OneWay}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ViewModel.IsFactoryUnlockMessageError}" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
 
         <TextBlock
             Margin="0,24,0,0"
@@ -47,7 +190,20 @@
             FontWeight="Medium"
             Text="版本信息" />
         <TextBlock Margin="0,12,0,0" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
-        <Button x:Name="up" Width="120" Height="30" Content="{
-            Binding ViewModel.Test}"/>
+
+        <TextBlock
+            Margin="0,24,0,0"
+            FontSize="20"
+            FontWeight="Medium"
+            Text="调试模式" />
+        <TextBlock
+            Margin="0,6,0,0"
+            FontSize="12"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="启用后将在各功能页显示调试控件（如生成测试数据）" />
+        <ui:ToggleSwitch
+            Margin="0,10,0,0"
+            Content="启用 Debug 模式"
+            IsChecked="{Binding ViewModel.IsDebugMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
     </StackPanel>
 </Page>

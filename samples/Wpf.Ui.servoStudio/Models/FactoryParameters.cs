@@ -73,15 +73,16 @@ public class FactoryParameters : ObservableObject, INotifyPropertyChanged
         get => _actualValue;
         set
         {
-            if(_minValue != "-")
+            if (_minValue != "-")
             {
-                if(value > int.Parse(_maxValue) || value < int.Parse(_minValue))
+                if (value > int.Parse(_maxValue) || value < int.Parse(_minValue))
                 {
                     return;
                 }
             }
-            SetProperty(ref _actualValue, value);
-            SetField(ref _actualValue, value);
+
+            _ = SetProperty(ref _actualValue, value);
+            _ = SetField(ref _actualValue, value);
             OnPropertyChanged(nameof(ActualValueChange));
         }
     }
@@ -128,11 +129,11 @@ public class FactoryParameters : ObservableObject, INotifyPropertyChanged
     private int ActualValueChange
     {
         get; set;
-    }        
-    
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    protected new virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
@@ -326,7 +327,7 @@ public class FactoryParametersFillInfo
         "2001-05h",
         "2001-06h",
         "2001-09h",
-        "2001-0Ah",        
+        "2001-0Ah",
         "2001-0Ch",
         "2001-0Dh",
         "2001-0Eh",
@@ -402,7 +403,7 @@ public class FactoryParametersFillInfo
         "使能OFF停机方式选择",
         "用户密码",
         "系统参数初始化",
-                
+
         "尺比分子",
         "脉冲指令模式",
         "相对位置圈数增量",
@@ -652,27 +653,27 @@ public class FactoryParametersFillInfo
         "-",
         "-",
         "50",
-        
+
         "3",
         "0",
         "0",
-        "-",        
+        "-",
         "0",
-        
+
         "400",
         "1",
         "0",
         "0",
         "30",
         "-",
-        
+
         "0",
         "10",
-        
+
         "0",
         "18",
         "19",
-        
+
         "7371",
         "169",
         "1749",
@@ -681,7 +682,7 @@ public class FactoryParametersFillInfo
         "500",
         "1200",
         "1200",
-        
+
         "-",
         "-",
         "-",
@@ -689,10 +690,10 @@ public class FactoryParametersFillInfo
         "-",
         "-",
         "-",
-        
+
         "3",
         "4",
-        
+
         "0",
         "0",
         "0",

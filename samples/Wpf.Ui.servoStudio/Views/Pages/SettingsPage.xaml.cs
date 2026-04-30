@@ -21,4 +21,12 @@ public partial class SettingsPage : INavigableView<ViewModels.SettingsViewModel>
 
         InitializeComponent();
     }
+
+    private void FactoryUnlockButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        // 密码只在内存中使用，输入后立即清空，不做任何持久化
+        var password = FactoryPasswordBox.Password;
+        ViewModel.TryUnlockFactory(password);
+        FactoryPasswordBox.Clear();
+    }
 }

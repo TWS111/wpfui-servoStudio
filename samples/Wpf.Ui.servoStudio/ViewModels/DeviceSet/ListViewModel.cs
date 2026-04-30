@@ -28,12 +28,11 @@ public partial class ListViewModel : ViewModel
     private bool _isTurningDatagirdAviliable = false;
     [ObservableProperty]
     public static bool _isDeviceInfoChecked = false;
-    
+
     [ObservableProperty]
     private TrulyObservableCollection<PortWeight> _weightCollection = new TrulyObservableCollection<PortWeight>();
-    private System.Type DialogResult;
-    
-   
+    private readonly System.Type DialogResult;
+
     public override void OnNavigatedTo()
     {
         if (!_isInitialized)
@@ -45,20 +44,20 @@ public partial class ListViewModel : ViewModel
     private static ObservableCollection<Device> GenerateDeviceList()
     {
         var random = new Random();
-        var devices = new ObservableCollection<Device> { }; 
+        var devices = new ObservableCollection<Device> { };
 
         for (int i = 0; i < 5; i++)
         {
-            
+
         }
 
         return devices;
     }
 
     [RelayCommand]
-    private async Task OnShowDialog( Type type)
+    private async Task OnShowDialog(Type type)
     {
-        
+
         //ContentDialogResult result = await contentDialogService.ShowSimpleDialogAsync(
         //    new SimpleContentDialogCreateOptions()
         //    {
@@ -76,12 +75,12 @@ public partial class ListViewModel : ViewModel
         //    ContentDialogResult.Secondary => "CANopen",
         //    _ => "RS485",
         //};
-               
-    }       
+
+    }
 
     private void InitializeViewModel()
     {
-        _weightCollection.Add(
+        WeightCollection.Add(
             new PortWeight
             {
                 SoftwareVersion = "1",
@@ -90,7 +89,7 @@ public partial class ListViewModel : ViewModel
                 SelectedTurning = "5"
             }
             );
-        _weightCollection.Add(
+        WeightCollection.Add(
             new PortWeight
             {
                 SoftwareVersion = "1",

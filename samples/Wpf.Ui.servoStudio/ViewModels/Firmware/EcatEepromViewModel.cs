@@ -133,8 +133,8 @@ public partial class EcatEepromViewModel(DeviceAddViewModel deviceAddViewModel) 
 
         try
         {
-            var axis = deviceAddViewModel.CurrentAxis;
-            var master = deviceAddViewModel.EcatMaster;
+            EtherCATSlave_CiA402? axis = deviceAddViewModel.CurrentAxis;
+            EtherCATMaster master = deviceAddViewModel.EcatMaster;
 
             if (axis == null)
             {
@@ -145,26 +145,26 @@ public partial class EcatEepromViewModel(DeviceAddViewModel deviceAddViewModel) 
             int slaveAddr = axis.SlaveAddr;
 
             // 1. 读取对象字典
-            var odEntries = await Task.Run(() => ReadObjectDictionary(master, slaveAddr));
+            List<ObjectDictionaryEntry> odEntries = await Task.Run(() => ReadObjectDictionary(master, slaveAddr));
 
             ObjectDictionaryEntries.Clear();
-            foreach (var entry in odEntries)
+            foreach (ObjectDictionaryEntry? entry in odEntries)
             {
                 ObjectDictionaryEntries.Add(entry);
             }
 
             // 2. 读取 PDO 映射
             StatusText = "正在读取PDO映射...";
-            var (rxPdo, txPdo) = await Task.Run(() => ReadPdoMappings(master, slaveAddr));
+            (List<PdoMappingEntry>? rxPdo, List<PdoMappingEntry>? txPdo) = await Task.Run(() => ReadPdoMappings(master, slaveAddr));
 
             RxPdoMappingEntries.Clear();
-            foreach (var entry in rxPdo)
+            foreach (PdoMappingEntry? entry in rxPdo)
             {
                 RxPdoMappingEntries.Add(entry);
             }
 
             TxPdoMappingEntries.Clear();
-            foreach (var entry in txPdo)
+            foreach (PdoMappingEntry? entry in txPdo)
             {
                 TxPdoMappingEntries.Add(entry);
             }
@@ -174,6 +174,7 @@ public partial class EcatEepromViewModel(DeviceAddViewModel deviceAddViewModel) 
         catch (Exception ex)
         {
             StatusText = $"读取失败: {ex.Message}";
+            AppData.AppLogViewModel.Log(Models.AppLogLevel.Error, Models.AppLogCategory.Firmware, "EEPROM 读取失败", ex.Message);
         }
         finally
         {
@@ -194,9 +195,9 @@ public partial class EcatEepromViewModel(DeviceAddViewModel deviceAddViewModel) 
     {
         var entries = new List<ObjectDictionaryEntry>();
 
-        foreach (var (index, subIndex, name, dataType) in _knownEntries)
+        foreach ((int index, int subIndex, string? name, SdoDataType dataType) in _knownEntries)
         {
-            var (success, valueStr, hexStr) = TryReadSdo(master, slaveAddr, index, subIndex, dataType);
+            (bool success, string? valueStr, string? hexStr) = TryReadSdo(master, slaveAddr, index, subIndex, dataType);
             if (success)
             {
                 entries.Add(new ObjectDictionaryEntry
@@ -231,8 +232,9 @@ public partial class EcatEepromViewModel(DeviceAddViewModel deviceAddViewModel) 
                 _ => ReadRawBytes(master, slaveAddr, index, subIndex),
             };
         }
-        catch
+        catch (Exception ex)
         {
+            AppData.AppLogViewModel.Log(Models.AppLogLevel.Warning, Models.AppLogCategory.SDO, "SDO 读取失败", $"Index=0x{index:X4} Sub=0x{subIndex:X2}: {ex.Message}");
             return (false, string.Empty, string.Empty);
         }
     }
@@ -269,6 +271,7 @@ public partial class EcatEepromViewModel(DeviceAddViewModel deviceAddViewModel) 
             string s = Encoding.ASCII.GetString(buf, 0, size).TrimEnd('\0');
             return (true, s, BitConverter.ToString(buf, 0, size));
         }
+
         return (false, string.Empty, string.Empty);
     }
 
@@ -283,6 +286,7 @@ public partial class EcatEepromViewModel(DeviceAddViewModel deviceAddViewModel) 
             string hex = BitConverter.ToString(buf, 0, size);
             return (true, hex, hex);
         }
+
         return (false, string.Empty, string.Empty);
     }
 
@@ -361,11 +365,12 @@ public partial class EcatEepromViewModel(DeviceAddViewModel deviceAddViewModel) 
 
     private static string GetKnownObjectName(int index, int subIndex)
     {
-        foreach (var (idx, sub, name, _) in _knownEntries)
+        foreach ((int idx, int sub, string? name, SdoDataType _) in _knownEntries)
         {
             if (idx == index && sub == subIndex)
                 return name;
         }
+
         return string.Empty;
     }
 }

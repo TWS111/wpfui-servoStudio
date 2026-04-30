@@ -5,7 +5,7 @@
 
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Net.NetworkInformation; 
+using System.Net.NetworkInformation;
 using Windows.ApplicationModel.VoiceCommands;
 using RJCP.IO.Ports;
 using Wpf.Ui.Abstractions.Controls;
@@ -15,9 +15,9 @@ using System.Drawing.Imaging.Effects;
 namespace Wpf.Ui.servoStudio.ViewModels;
 
 public abstract class ViewModel :
-    ObservableObject, INavigationAware
+    ObservableObject, INavigationAware, IDisposable
 {
-        
+
     public SerialPortFaultInfo PortFaultInfo = new SerialPortFaultInfo();
     public SerialPortTransmitInfo PortTransmitInfo = new SerialPortTransmitInfo();
     public SerialPortReceiveInfo PortReceiveInfo = new SerialPortReceiveInfo();
@@ -57,9 +57,9 @@ public abstract class ViewModel :
 
     public async Task CheckDeviceAddress()
     {
-        while(State == StateEnum.CheckDeviceInfo)
+        while (State == StateEnum.CheckDeviceInfo)
         {
-            
+
         }
     }
 
@@ -77,11 +77,11 @@ public abstract class ViewModel :
                 else if (State == StateEnum.CheckDeviceInfo)
                 {
                     State = StateEnum.WaitToReceiveDeviceInfo;
-                    if(PortTransmitInfo.slaveAddress >= 0xFF)
+                    if (PortTransmitInfo.slaveAddress >= 0xFF)
                     {
                         PortTransmitInfo.slaveAddress = 0;
                     }
-                    
+
                     continue;
                 }
 
@@ -102,7 +102,6 @@ public abstract class ViewModel :
                         QueueListSample.groupWeightActual[((int)State - 3) / 4]++;
 
                     }
-
                 }
                 else if ((int)State >= 3 && ((int)State - 3) % 4 == 0)
                 {
@@ -111,7 +110,6 @@ public abstract class ViewModel :
                         QueueInfo.isInsertToSendQueue = false;
                     }
                 }
-
             }
         }
     }
@@ -157,7 +155,7 @@ public abstract class ViewModel :
                     }
                     else
                     {
-                        vcom.Read(PortReceiveInfo.bufferReceiveData, 0, PortFrameInfo.readyToReadLength);
+                        _ = vcom.Read(PortReceiveInfo.bufferReceiveData, 0, PortFrameInfo.readyToReadLength);
                         if (PortReceiveInfo.bufferReceiveData[0] != PortTransmitInfo.registerIndex[0] && PortReceiveInfo.bufferReceiveData[1] != PortTransmitInfo.registerIndex[1])
                         {
                             PortFaultInfo.faultCount[(int)SerialPortTransmitFault.WrongRegisterNumber]++;
@@ -171,7 +169,7 @@ public abstract class ViewModel :
                             }
 
                             PortReadyReceive.isDataAvailable = true;
-                            if(State < StateEnum.EOE - 2)
+                            if (State < StateEnum.EOE - 2)
                             {
                                 State += 1;
                             }
@@ -191,7 +189,7 @@ public abstract class ViewModel :
                     string receiveText = string.Empty;
                     if (bufferRemain > 0)
                     {
-                        vcom.Read(PortReceiveInfo.headReceiveData, 0, 3);
+                        _ = vcom.Read(PortReceiveInfo.headReceiveData, 0, 3);
                         if (PortReceiveInfo.headReceiveData[0].ToString("X2") != slaveAddress.ToString("X2"))
                         {
                             vcom.Flush();
@@ -215,14 +213,14 @@ public abstract class ViewModel :
                             continue;
                         }
 
-                        vcom.Read(PortReceiveInfo.bufferReceiveData, 0, PortFrameInfo.readyToReadLength);
+                        _ = vcom.Read(PortReceiveInfo.bufferReceiveData, 0, PortFrameInfo.readyToReadLength);
                         PortFrameInfo.readyToReadLength = 0;
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                //
+                AppData.AppLogViewModel.Log(Models.AppLogLevel.Warning, Models.AppLogCategory.System, "串口读取异常", ex.Message);
                 continue;
             }
         }
@@ -255,4 +253,9 @@ public abstract class ViewModel :
     /// </summary>
     // ReSharper disable once MemberCanBeProtected.Global
     public virtual void OnNavigatedFrom() { }
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
 }
