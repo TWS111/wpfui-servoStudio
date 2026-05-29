@@ -44,9 +44,19 @@ public partial class UserConfigViewModel : ViewModel
     [ObservableProperty] private int _checkBitIndex = -1;
     [ObservableProperty] private int _stopBitIndex = -1;
     [ObservableProperty] private string _ethernetDeviceName = string.Empty;
+    [ObservableProperty] private int _modbusSlaveAddress = 1;
+    [ObservableProperty] private int _canopenNodeId = 1;
+    [ObservableProperty] private int _canopenBitrateIndex = 6;
+    [ObservableProperty] private int _deviceAddTabIndex;
+    [ObservableProperty] private string _canAdapterKind = string.Empty;
+    [ObservableProperty] private string _canAdapterIdentifier = string.Empty;
 
     // ===== 运动配置 =====
     [ObservableProperty] private double _cyclicSendIntervalMs = 20;
+
+    // ===== 总线诊断 =====
+    [ObservableProperty] private int _busDiagnosticsIntervalMs = 100;
+    [ObservableProperty] private bool _busDiagnosticsProbeSdo = true;
 
     // ===== 应用日志 =====
     [ObservableProperty] private bool _appLogEnabled = true;
@@ -56,10 +66,32 @@ public partial class UserConfigViewModel : ViewModel
     [ObservableProperty] private int _appLogRetentionDays = 30;
     [ObservableProperty] private bool _appLogIsAutoScroll = true;
 
+    // ===== 波形窗 =====
+    [ObservableProperty] private bool _dataViewIsDarkTheme;
+    [ObservableProperty] private float _dataViewLegendFontSize = 16f;
+
+    // ===== 调试 =====
+    [ObservableProperty] private bool _isDebugMode;
+    [ObservableProperty] private string _dataSaveTestDataDirectory = string.Empty;
+
     // ===== 状态 =====
     [ObservableProperty] private string _settingsPath = string.Empty;
     [ObservableProperty] private string _statusText = "就绪";
     [ObservableProperty] private string _jsonPreview = string.Empty;
+
+    // ===== 厂家权限 / 联动 =====
+
+    /// <summary>当前是否已解锁厂家权限（仅读镜像，随 <see cref="FactoryAccessService"/> 同步）。</summary>
+    [ObservableProperty] private bool _isFactoryUnlocked;
+
+    /// <summary>当前被禁用的 EtherCAT 寄存器键列表，与厂家页联动。</summary>
+    public System.Collections.ObjectModel.ObservableCollection<string> DisabledRegistersEtherCAT { get; } = new();
+
+    /// <summary>当前被禁用的 CANopen 寄存器键列表。</summary>
+    public System.Collections.ObjectModel.ObservableCollection<string> DisabledRegistersCANopen { get; } = new();
+
+    /// <summary>当前被禁用的 Modbus 寄存器键列表。</summary>
+    public System.Collections.ObjectModel.ObservableCollection<string> DisabledRegistersModbus { get; } = new();
 
     public string[] ThemeOptions { get; } = ["theme_light", "theme_dark", "theme_system"];
     public string[] DataSaveFormatOptions { get; } = ["CSV", "TSV", "XLS", "JSON"];
@@ -92,6 +124,59 @@ public partial class UserConfigViewModel : ViewModel
         SettingsPath = UserSettingsService.GetSettingsPath();
         ReloadFromDisk();
         UserSettingsService.SettingsChanged += OnExternalSettingsChanged;
+
+        // 厂家页解锁状态联动
+        IsFactoryUnlocked = FactoryAccessService.IsUnlocked;
+        FactoryAccessService.UnlockStateChanged += OnFactoryUnlockStateChanged;
+
+        // 寄存器禁用动态联动
+        RegisterDisableService.Changed += OnRegisterDisableChanged;
+        RefreshDisabledRegisters();
+    }
+
+    private void OnFactoryUnlockStateChanged(object? sender, EventArgs e)
+    {
+        if (Application.Current?.Dispatcher is { } d && !d.CheckAccess())
+        {
+            _ = d.BeginInvoke(() => OnFactoryUnlockStateChanged(sender, e));
+            return;
+        }
+
+        IsFactoryUnlocked = FactoryAccessService.IsUnlocked;
+        // 锁定状态变化 → 刷新 JSON 预览（锁定时需要在预览中隐藏/脱敏厂家字段）
+        JsonPreview = BuildJsonPreview(UserSettingsService.Load());
+    }
+
+    private void OnRegisterDisableChanged(object? sender, EventArgs e)
+    {
+        if (Application.Current?.Dispatcher is { } d && !d.CheckAccess())
+        {
+            _ = d.BeginInvoke(() => OnRegisterDisableChanged(sender, e));
+            return;
+        }
+
+        RefreshDisabledRegisters();
+        // RegisterDisableService.Changed 已随路持久化；UserSettingsService.SettingsChanged 会同步刷新预览，
+        // 但为避免不同源事件顺序差异导致列表与预览不一致，这里主动重建一次预览。
+        JsonPreview = BuildJsonPreview(UserSettingsService.Load());
+    }
+
+    private void RefreshDisabledRegisters()
+    {
+        UserSettings s = UserSettingsService.Load();
+        ReplaceCollection(DisabledRegistersEtherCAT, s.DisabledRegisters_EtherCAT);
+        ReplaceCollection(DisabledRegistersCANopen, s.DisabledRegisters_CANopen);
+        ReplaceCollection(DisabledRegistersModbus, s.DisabledRegisters_Modbus);
+    }
+
+    private static void ReplaceCollection(
+        System.Collections.ObjectModel.ObservableCollection<string> dst,
+        IList<string>? src)
+    {
+        dst.Clear();
+        if (src == null) return;
+        foreach (string s in src)
+            dst.Add(s);
     }
 
     private void OnDataVariableChanged(object? sender, PropertyChangedEventArgs e)
@@ -100,7 +185,7 @@ public partial class UserConfigViewModel : ViewModel
             return;
 
         // DataSaveViewModel 已经写盘，这里只刷新右侧 JSON 预览与状态栏
-        JsonPreview = UserSettingsService.ToJson(UserSettingsService.Load());
+        JsonPreview = BuildJsonPreview(UserSettingsService.Load());
         StatusText = $"已自动保存 · {DateTime.Now:HH:mm:ss}";
     }
 
@@ -153,8 +238,17 @@ public partial class UserConfigViewModel : ViewModel
             CheckBitIndex = s.DeviceAdd_CheckBitIndex;
             StopBitIndex = s.DeviceAdd_StopBitIndex;
             EthernetDeviceName = s.DeviceAdd_EthernetDeviceName;
+            ModbusSlaveAddress = s.DeviceAdd_ModbusSlaveAddress;
+            CanopenNodeId = s.DeviceAdd_CanopenNodeId;
+            CanopenBitrateIndex = s.DeviceAdd_CanopenBitrateIndex;
+            DeviceAddTabIndex = s.DeviceAdd_ActiveTabIndex;
+            CanAdapterKind = s.DeviceAdd_CanAdapterKind;
+            CanAdapterIdentifier = s.DeviceAdd_CanAdapterIdentifier;
 
             CyclicSendIntervalMs = s.Motion_CyclicSendIntervalMs;
+
+            BusDiagnosticsIntervalMs = s.BusDiagnostics_IntervalMs;
+            BusDiagnosticsProbeSdo = s.BusDiagnostics_ProbeSdo;
 
             AppLogEnabled = s.AppLog_IsEnabled;
             AppLogDirectory = s.AppLog_Directory;
@@ -163,12 +257,24 @@ public partial class UserConfigViewModel : ViewModel
             AppLogRetentionDays = s.AppLog_RetentionDays;
             AppLogIsAutoScroll = s.AppLog_IsAutoScroll;
 
-            JsonPreview = UserSettingsService.ToJson(s);
+            DataViewIsDarkTheme = s.DataView_IsDarkTheme;
+            DataViewLegendFontSize = s.DataView_LegendFontSize;
+
+            IsDebugMode = s.IsDebugMode;
+            DataSaveTestDataDirectory = s.DataSave_TestDataDirectory;
+
+            JsonPreview = BuildJsonPreview(s);
         }
         finally
         {
             _isApplying = false;
         }
+    }
+
+    /// <summary>根据当前厂家解锁状态生成预览 JSON：锁定时脱敏厂家字段。</summary>
+    private string BuildJsonPreview(UserSettings s)
+    {
+        return UserSettingsService.ToJsonForDisplay(s, includeFactoryFields: IsFactoryUnlocked);
     }
 
     private void PersistFromViewModel()
@@ -197,8 +303,17 @@ public partial class UserConfigViewModel : ViewModel
         s.DeviceAdd_CheckBitIndex = CheckBitIndex;
         s.DeviceAdd_StopBitIndex = StopBitIndex;
         s.DeviceAdd_EthernetDeviceName = EthernetDeviceName;
+        s.DeviceAdd_ModbusSlaveAddress = ModbusSlaveAddress;
+        s.DeviceAdd_CanopenNodeId = CanopenNodeId;
+        s.DeviceAdd_CanopenBitrateIndex = CanopenBitrateIndex;
+        s.DeviceAdd_ActiveTabIndex = Math.Clamp(DeviceAddTabIndex, 0, 2);
+        s.DeviceAdd_CanAdapterKind = CanAdapterKind;
+        s.DeviceAdd_CanAdapterIdentifier = CanAdapterIdentifier;
 
         s.Motion_CyclicSendIntervalMs = CyclicSendIntervalMs;
+
+        s.BusDiagnostics_IntervalMs = BusDiagnosticsIntervalMs;
+        s.BusDiagnostics_ProbeSdo = BusDiagnosticsProbeSdo;
 
         s.AppLog_IsEnabled = AppLogEnabled;
         s.AppLog_Directory = AppLogDirectory;
@@ -206,6 +321,12 @@ public partial class UserConfigViewModel : ViewModel
         s.AppLog_MaxFileSizeMB = AppLogMaxFileSizeMB;
         s.AppLog_RetentionDays = AppLogRetentionDays;
         s.AppLog_IsAutoScroll = AppLogIsAutoScroll;
+
+        s.DataView_IsDarkTheme = DataViewIsDarkTheme;
+        s.DataView_LegendFontSize = DataViewLegendFontSize;
+
+        s.IsDebugMode = IsDebugMode;
+        s.DataSave_TestDataDirectory = DataSaveTestDataDirectory;
 
         _isApplying = true;
         try
@@ -217,7 +338,7 @@ public partial class UserConfigViewModel : ViewModel
             _isApplying = false;
         }
 
-        JsonPreview = UserSettingsService.ToJson(s);
+        JsonPreview = BuildJsonPreview(s);
         StatusText = $"已自动保存 · {DateTime.Now:HH:mm:ss}";
     }
 
@@ -293,8 +414,17 @@ public partial class UserConfigViewModel : ViewModel
     partial void OnCheckBitIndexChanged(int value) => PersistFromViewModel();
     partial void OnStopBitIndexChanged(int value) => PersistFromViewModel();
     partial void OnEthernetDeviceNameChanged(string value) => PersistFromViewModel();
+    partial void OnModbusSlaveAddressChanged(int value) => PersistFromViewModel();
+    partial void OnCanopenNodeIdChanged(int value) => PersistFromViewModel();
+    partial void OnCanopenBitrateIndexChanged(int value) => PersistFromViewModel();
+    partial void OnDeviceAddTabIndexChanged(int value) => PersistFromViewModel();
+    partial void OnCanAdapterKindChanged(string value) => PersistFromViewModel();
+    partial void OnCanAdapterIdentifierChanged(string value) => PersistFromViewModel();
 
     partial void OnCyclicSendIntervalMsChanged(double value) => PersistFromViewModel();
+
+    partial void OnBusDiagnosticsIntervalMsChanged(int value) => PersistFromViewModel();
+    partial void OnBusDiagnosticsProbeSdoChanged(bool value) => PersistFromViewModel();
 
     partial void OnAppLogEnabledChanged(bool value) => PersistFromViewModel();
     partial void OnAppLogDirectoryChanged(string value) => PersistFromViewModel();
@@ -302,6 +432,12 @@ public partial class UserConfigViewModel : ViewModel
     partial void OnAppLogMaxFileSizeMBChanged(int value) => PersistFromViewModel();
     partial void OnAppLogRetentionDaysChanged(int value) => PersistFromViewModel();
     partial void OnAppLogIsAutoScrollChanged(bool value) => PersistFromViewModel();
+
+    partial void OnDataViewIsDarkThemeChanged(bool value) => PersistFromViewModel();
+    partial void OnDataViewLegendFontSizeChanged(float value) => PersistFromViewModel();
+
+    partial void OnIsDebugModeChanged(bool value) => PersistFromViewModel();
+    partial void OnDataSaveTestDataDirectoryChanged(string value) => PersistFromViewModel();
 
     // ===== 命令 =====
 

@@ -4,9 +4,10 @@
 // All Rights Reserved.
 
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.servoStudio.Services;
 
@@ -34,86 +35,155 @@ public partial class HomePage : INavigableView<ViewModels.HomeViewModel>
         set => SetValue(HoverDescriptionProperty, value);
     }
 
-    /// <summary>
-    /// 去抖定时器：在卡片之间快速切换时，旧卡片的 MouseLeave 不会立即触发淡出；
-    /// 若在 <see cref="LeaveDebounceMs"/> 内有新的 MouseEnter 到来则取消淡出。
-    /// </summary>
-    private readonly DispatcherTimer _fadeOutTimer;
-    private const int LeaveDebounceMs = 120;
+    // -1 = 无固定；0~4 = 对应分类已固定展开
+    private int _pinnedIndex = -1;
+    private Border[] _subMenus = null!;
+    private StackPanel[] _categoryPanels = null!;
 
     public HomePage(ViewModels.HomeViewModel viewModel)
     {
         ViewModel = viewModel;
         DataContext = this;
-
         InitializeComponent();
-
-        _fadeOutTimer = new DispatcherTimer
+        Loaded += (_, _) =>
         {
-            Interval = TimeSpan.FromMilliseconds(LeaveDebounceMs),
+            ViewModel.RefreshQuickAccess();
+            _subMenus = [SubMenu0, SubMenu1, SubMenu2, SubMenu3, SubMenu4];
+            _categoryPanels = [CategoryPanel0, CategoryPanel1, CategoryPanel2, CategoryPanel3, CategoryPanel4];
+            AttachSubMenuHoverHandlers();
         };
-        _fadeOutTimer.Tick += OnFadeOutTimerTick;
-
-        Loaded += (_, _) => ViewModel.RefreshQuickAccess();
     }
 
+    // 右侧功能说明面板：悬停快速访问卡片时更新
     private void Card_MouseEnter(object sender, MouseEventArgs e)
     {
-        if (sender is not FrameworkElement fe || fe.Tag is not QuickAccessItem item)
+        if (sender is FrameworkElement { Tag: QuickAccessItem item })
         {
+            UpdateHoverDescription(item.Title, item.Description);
             return;
         }
 
-        // 取消任何待执行的淡出，避免新卡片刚显示又被旧卡片的 Leave 淡出
-        _fadeOutTimer.Stop();
-
-        HoverTitle = item.Title;
-        HoverDescription = item.Description;
-
-        if (DescriptionPanel is null)
+        if (sender is ButtonBase { CommandParameter: Type pageType }
+            && PageUsageTracker.TryGetPageMetadata(pageType, out var meta))
         {
-            return;
-        }
-
-        // 释放上一次 Storyboard.Begin(target, true) 持有的时钟，
-        // 然后启动新的淡入动画。
-        DescriptionPanel.BeginAnimation(UIElement.OpacityProperty, null);
-
-        if (Resources["DescFadeIn"] is Storyboard sb)
-        {
-            sb.Begin(DescriptionPanel, true);
-        }
-        else
-        {
-            DescriptionPanel.Opacity = 1.0;
+            UpdateHoverDescription(meta.Title, meta.Description);
         }
     }
 
-    private void Card_MouseLeave(object sender, MouseEventArgs e)
+    private void UpdateHoverDescription(string title, string description)
     {
-        // 启动去抖定时器；若用户进入相邻卡片，会在 Tick 之前被 MouseEnter 取消。
-        _fadeOutTimer.Stop();
-        _fadeOutTimer.Start();
+        HoverTitle = title;
+        HoverDescription = description;
+
+        if (Resources["DescFadeIn"] is Storyboard sb && DescriptionSection is not null)
+            sb.Begin(DescriptionSection, true);
     }
 
-    private void OnFadeOutTimerTick(object? sender, EventArgs e)
+    private void AttachSubMenuHoverHandlers()
     {
-        _fadeOutTimer.Stop();
-
-        if (DescriptionPanel is null)
+        foreach (Border subMenu in _subMenus)
         {
-            return;
+            if (subMenu.Child is not Panel panel)
+                continue;
+
+            foreach (UIElement child in panel.Children)
+            {
+                if (child is ButtonBase button)
+                {
+                    button.MouseEnter -= Card_MouseEnter;
+                    button.MouseEnter += Card_MouseEnter;
+                }
+            }
         }
+    }
 
-        DescriptionPanel.BeginAnimation(UIElement.OpacityProperty, null);
+    // 鼠标进入分类容器：若未固定则展开悬停预览
+    private void CategoryPanel_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (!TryGetCategoryIndex(sender, out int index)) return;
+        if (_pinnedIndex != index)
+            AnimateSubMenu(_subMenus[index], expand: true);
+    }
 
-        if (Resources["DescFadeOut"] is Storyboard sb)
+    // 鼠标离开分类容器：若未固定则收起
+    private void CategoryPanel_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (!TryGetCategoryIndex(sender, out int index)) return;
+        if (_pinnedIndex != index)
+            AnimateSubMenu(_subMenus[index], expand: false);
+    }
+
+    // 点击分类卡片：切换固定状态，不导航
+    private void CategoryCard_Click(object sender, RoutedEventArgs e)
+    {
+        if (!TryGetCategoryIndex(sender, out int index)) return;
+
+        if (_pinnedIndex == index)
         {
-            sb.Begin(DescriptionPanel, true);
+            // 再次点击同一分类：取消固定并收起
+            _pinnedIndex = -1;
+            AnimateSubMenu(_subMenus[index], expand: false);
         }
         else
         {
-            DescriptionPanel.Opacity = 0.0;
+            // 收起之前固定的分类
+            if (_pinnedIndex >= 0)
+                AnimateSubMenu(_subMenus[_pinnedIndex], expand: false);
+
+            _pinnedIndex = index;
+            AnimateSubMenu(_subMenus[index], expand: true);
         }
+
+        // 阻止事件冒泡，防止触发 Page_PreviewMouseDown 立即收起
+        e.Handled = true;
+    }
+
+    // 点击页面空白处或其他控件：收起固定的子菜单
+    private void Page_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_pinnedIndex < 0) return;
+
+        // 若点击位置在固定分类的容器内，不收起
+        if (e.OriginalSource is DependencyObject source
+            && _categoryPanels[_pinnedIndex].IsAncestorOf(source))
+            return;
+
+        AnimateSubMenu(_subMenus[_pinnedIndex], expand: false);
+        _pinnedIndex = -1;
+    }
+
+    private static bool TryGetCategoryIndex(object sender, out int index)
+    {
+        index = -1;
+        return sender is FrameworkElement fe
+            && int.TryParse(fe.Tag?.ToString(), out index);
+    }
+
+    private void AnimateSubMenu(Border subMenu, bool expand)
+    {
+        var sb = new Storyboard();
+
+        var maxH = new DoubleAnimation
+        {
+            To = expand ? 1000 : 0,
+            Duration = new Duration(TimeSpan.FromSeconds(expand ? 0.7 : 0.3)),
+            EasingFunction = expand
+                ? new CubicEase { EasingMode = EasingMode.EaseOut }
+                : new CubicEase { EasingMode = EasingMode.EaseIn }
+        };
+        Storyboard.SetTarget(maxH, subMenu);
+        Storyboard.SetTargetProperty(maxH, new PropertyPath(FrameworkElement.MaxHeightProperty));
+
+        var opacity = new DoubleAnimation
+        {
+            To = expand ? 1 : 0,
+            Duration = new Duration(TimeSpan.FromSeconds(expand ? 0.3 : 0.2))
+        };
+        Storyboard.SetTarget(opacity, subMenu);
+        Storyboard.SetTargetProperty(opacity, new PropertyPath(UIElement.OpacityProperty));
+
+        sb.Children.Add(maxH);
+        sb.Children.Add(opacity);
+        sb.Begin();
     }
 }

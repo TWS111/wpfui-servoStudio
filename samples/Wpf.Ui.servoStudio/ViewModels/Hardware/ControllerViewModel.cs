@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using Core.Net.EtherCAT;
 using Wpf.Ui.servoStudio.Core;
 using Wpf.Ui.servoStudio.Models;
+using Wpf.Ui.servoStudio.Services;
 using Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
 namespace Wpf.Ui.servoStudio.ViewModels.Hardware;
@@ -360,13 +361,48 @@ public partial class ControllerViewModel(DeviceAddViewModel deviceAddViewModel) 
         HardwareControllerCollection.Clear();
 
         foreach (HRegisterEntry entry in HVariables.RegisterTable
-            .Where(e => e.HIndex.StartsWith("H01", StringComparison.OrdinalIgnoreCase)))
+            .Where(e => IsControllerEntry(e))
+            .Where(e => !RegisterDisableService.IsDisabledForActive(e.SdoIndex, e.SdoSubIndex)))
         {
             HardwareController param = HardwareController.FromRegisterEntry(entry);
             HardwareControllerCollection.Add(param);
         }
 
+        RegisterDisableService.Changed -= OnDisabledChanged;
+        RegisterDisableService.Changed += OnDisabledChanged;
+
         UpdateConnectionState();
+    }
+
+    private void OnDisabledChanged(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            HardwareControllerCollection.Clear();
+            foreach (HRegisterEntry entry in HVariables.RegisterTable
+                .Where(x => IsControllerEntry(x))
+                .Where(x => !RegisterDisableService.IsDisabledForActive(x.SdoIndex, x.SdoSubIndex)))
+            {
+                HardwareControllerCollection.Add(HardwareController.FromRegisterEntry(entry));
+            }
+        });
+    }
+
+    /// <summary>
+    /// 本页展示的寄存器范围：
+    /// · H01 组：驱动器硬件参数
+    /// · H0D.09 ~ H0D.12：制动电阻选择 / 阻值 / 功率 / 制动单元动作电压
+    /// </summary>
+    private static bool IsControllerEntry(HRegisterEntry e)
+    {
+        if (e.HIndex.StartsWith("H01", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (string.Equals(e.HIndex, "H0D.09", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(e.HIndex, "H0D.10", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(e.HIndex, "H0D.11", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(e.HIndex, "H0D.12", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
     }
 
     private void UpdateConnectionState()
@@ -396,6 +432,29 @@ public partial class ControllerViewModel(DeviceAddViewModel deviceAddViewModel) 
         StopMonitorTimer();
         IsAutoMonitoring = false;
     }
+
+    #endregion
+
+    #region H0D 辅助命令
+
+    [ObservableProperty]
+    private string _h0DStatus = string.Empty;
+
+    private void TriggerH0DCmd(string hIndex, string label)
+    {
+        var master = Master;
+        var axis = Axis;
+        if (master is null || axis is null) { H0DStatus = "未连接设备"; return; }
+        var errs = new List<string>();
+        HRegisterIO.SafeWriteHReg(master, axis, hIndex, 1, errs, hIndex);
+        H0DStatus = errs.Count == 0 ? $"{label} 已下发" : $"{label} 失败: {string.Join(';', errs)}";
+    }
+
+    [RelayCommand] private void OnSoftReset()     => TriggerH0DCmd("H0D.01", "软件复位");
+    [RelayCommand] private void OnFaultReset()    => TriggerH0DCmd("H0D.02", "故障复位");
+    [RelayCommand] private void OnParamSave()     => TriggerH0DCmd("H0D.03", "参数存储");
+    [RelayCommand] private void OnHomingTrigger() => TriggerH0DCmd("H0D.05", "主动回零");
+    [RelayCommand] private void OnEmergencyStop() => TriggerH0DCmd("H0D.06", "紧急停机");
 
     #endregion
 }

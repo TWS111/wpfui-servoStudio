@@ -35,42 +35,51 @@ public class PageUsageTracker
     private static readonly Dictionary<Type, (string Title, string Description, SymbolRegular Icon)> _pageRegistry = new()
     {
         // 设备管理
-        [typeof(Views.Pages.DeviceSetPages.StartPage)] = ("设备连接", "添加、选择、断开设备", SymbolRegular.PlugConnected24),
-        [typeof(Views.Pages.DeviceSetPages.ListPage)] = ("设备列表", "查看已连接设备", SymbolRegular.TextBulletList20),
-        [typeof(Views.Pages.DeviceSetPages.DeviceAddPage)] = ("添加设备", "扫描并添加新设备", SymbolRegular.AddCircle24),
-        
+        [typeof(Views.Pages.DeviceSetPages.ListPage)] = ("设备列表", "查看已连接设备并添加新设备", SymbolRegular.PlugConnected24),
+        [typeof(Views.Pages.DeviceSetPages.BusDiagnosticsPage)] = ("总线诊断", "实时监控总线质量与通信延迟", SymbolRegular.Pulse20),
+
         // 控制与调试
-        [typeof(Views.Pages.ControlPage)] = ("控制台", "实时控制与调试", SymbolRegular.DesktopCursor24),
+        [typeof(Views.Pages.ControlPage)] = ("状态机", "CiA402 状态机监控与控制字调试", SymbolRegular.DesktopCursor24),
+        [typeof(Views.Pages.QuickControlPage)] = ("快速控制", "伺服快捷操作、CiA 参数快调与在线波形", SymbolRegular.DeviceEq20),
         [typeof(Views.Pages.DashboardPage)] = ("仪表盘", "设备状态实时监控", SymbolRegular.Gauge24),
-        
+
         // 故障与诊断
         [typeof(Views.Pages.FaultInfoPage)] = ("故障信息", "查看故障与告警记录", SymbolRegular.Warning24),
-        
+
         // 硬件配置
         [typeof(Views.Pages.HardwarePage)] = ("硬件总览", "硬件配置概览", SymbolRegular.DeveloperBoard16),
         [typeof(Views.Pages.HardwarePages.ControllerPage)] = ("控制器参数", "配置控制器硬件参数", SymbolRegular.DeveloperBoardLightning20),
         [typeof(Views.Pages.HardwarePages.MotorPage)] = ("电机参数", "配置电机相关参数", SymbolRegular.Engine20),
         [typeof(Views.Pages.HardwarePages.IOPage)] = ("IO配置", "输入输出端口配置", SymbolRegular.DockRow24),
-        
+        [typeof(Views.Pages.HardwarePages.StoConfigPage)] = ("STO配置", "安全转矩关断功能配置", SymbolRegular.ShieldLock20),
+
         // 运动控制
         [typeof(Views.Pages.MotionPages.MotionTypePage)] = ("控制模式", "配置运动控制方式", SymbolRegular.MapDrive16),
         [typeof(Views.Pages.MotionPages.MotionLimitPage)] = ("运动限制", "运动限制参数配置与监控", SymbolRegular.CenterHorizontal20),
-        
+        [typeof(Views.Pages.MotionPages.MotionProfilePage)] = ("运动曲线", "T型/S型运动轮廓配置与预览", SymbolRegular.ArrowTrendingLines20),
+        [typeof(Views.Pages.MotionPages.MultiStepProfilePage)] = ("多段速度/位置", "多步运动轮廓配置与执行", SymbolRegular.DataHistogram24),
+
+        // 调试整定
+        [typeof(Views.Pages.TuningPages.MotorIdentificationPage)] = ("电机参数辨识", "在线辨识电机电气参数", SymbolRegular.Clipboard16),
+        [typeof(Views.Pages.TuningPages.AdvancedTuningPage)] = ("高级整定", "在线惯量辨识与滤波调节", SymbolRegular.DeviceEq20),
+
         // 参数管理
-        [typeof(Views.Pages.ParametersPages.FactoryPage)] = ("厂家参数", "查看/修改出厂参数", SymbolRegular.CalendarLock20),
-        
+        [typeof(Views.Pages.FactoryPages.FactoryPage)] = ("厂家参数", "查看/修改出厂参数", SymbolRegular.CalendarLock20),
+
         // 数据与日志
         [typeof(Views.Pages.AppDataPages.AppLogPage)] = ("软件日志", "查看应用运行日志", SymbolRegular.DocumentChevronDouble20),
         [typeof(Views.Pages.AppDataPages.DataSavePage)] = ("数据存储", "伺服变量采样与导出", SymbolRegular.ArrowDownload24),
         [typeof(Views.Pages.AppDataPages.DataViewPage)] = ("数据查看", "查看历史数据记录", SymbolRegular.Table24),
         [typeof(Views.Pages.AppDataPages.PidAdjustPage)] = ("PID调节", "PID参数调整与曲线", SymbolRegular.StreamInputOutput20),
         [typeof(Views.Pages.AppDataPages.UserConfigPage)] = ("用户配置", "保存与加载用户参数配置", SymbolRegular.Person20),
-        
+
         // 固件管理
         [typeof(Views.Pages.FirmwarePages.FirmwarePage)] = ("EEPROM提取", "提取EEPROM数据", SymbolRegular.Memory16),
         [typeof(Views.Pages.FirmwarePages.FirmwareProgramPage)] = ("固件烧录", "EtherCAT XML烧录与BOOT", SymbolRegular.Flash24),
-        [typeof(Views.Pages.FirmwarePages.FactoryFirmwarePage)] = ("出厂固件", "管理与烧录出厂固件", SymbolRegular.HardDrive24),
-        
+        [typeof(Views.Pages.FactoryPages.FactoryFirmwarePage)] = ("出厂固件", "管理与烧录出厂固件", SymbolRegular.HardDrive24),
+        [typeof(Views.Pages.FactoryPages.FrameFormatEditorPage)] = ("帧格式修改器", "自定义 Modbus/CANopen/USB 帧格式", SymbolRegular.DocumentEdit20),
+        [typeof(Views.Pages.FactoryPages.AutomationProcessPage)] = ("自动化流程", "出厂前板级/外设/功能自动化测试", SymbolRegular.Beaker24),
+
         // 数据页面
         [typeof(Views.Pages.DataPage)] = ("数据管理", "数据查看与管理", SymbolRegular.Folder24),
     };
@@ -80,7 +89,7 @@ public class PageUsageTracker
     /// </summary>
     private static readonly Type[] _defaultTopPages =
     [
-        typeof(Views.Pages.DeviceSetPages.StartPage),
+        typeof(Views.Pages.DeviceSetPages.ListPage),
         typeof(Views.Pages.ControlPage),
         typeof(Views.Pages.AppDataPages.PidAdjustPage),
     ];
@@ -98,6 +107,17 @@ public class PageUsageTracker
         ];
     }
 
+    public static bool TryGetPageMetadata(Type? pageType, out (string Title, string Description, SymbolRegular Icon) meta)
+    {
+        if (pageType is not null && _pageRegistry.TryGetValue(pageType, out meta))
+        {
+            return true;
+        }
+
+        meta = default;
+        return false;
+    }
+
     /// <summary>
     /// Returns the friendly title for a given page type, or the type name when not registered.
     /// </summary>
@@ -106,7 +126,7 @@ public class PageUsageTracker
         if (pageType is null)
             return string.Empty;
 
-        return _pageRegistry.TryGetValue(pageType, out (string Title, string Description, SymbolRegular Icon) meta)
+        return TryGetPageMetadata(pageType, out (string Title, string Description, SymbolRegular Icon) meta)
             ? meta.Title
             : pageType.Name;
     }
@@ -149,7 +169,7 @@ public class PageUsageTracker
         foreach (KeyValuePair<string, int> kv in ranked)
         {
             Type? pageType = _pageRegistry.Keys.FirstOrDefault(t => t.FullName == kv.Key);
-            if (pageType is not null && _pageRegistry.TryGetValue(pageType, out (string Title, string Description, SymbolRegular Icon) meta))
+            if (TryGetPageMetadata(pageType, out (string Title, string Description, SymbolRegular Icon) meta))
             {
                 result.Add(new QuickAccessItem
                 {

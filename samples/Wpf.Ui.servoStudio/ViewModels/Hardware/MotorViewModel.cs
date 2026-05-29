@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using Core.Net.EtherCAT;
 using Wpf.Ui.servoStudio.Core;
 using Wpf.Ui.servoStudio.Models;
+using Wpf.Ui.servoStudio.Services;
 using Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
 namespace Wpf.Ui.servoStudio.ViewModels.Hardware;
@@ -341,13 +342,32 @@ public partial class MotorViewModel(DeviceAddViewModel deviceAddViewModel) : Vie
         HardwareControllerCollection.Clear();
 
         foreach (HRegisterEntry entry in HVariables.RegisterTable
-            .Where(e => e.HIndex.StartsWith("H00", StringComparison.OrdinalIgnoreCase)))
+            .Where(e => e.HIndex.StartsWith("H00", StringComparison.OrdinalIgnoreCase))
+            .Where(e => !RegisterDisableService.IsDisabledForActive(e.SdoIndex, e.SdoSubIndex)))
         {
             HardwareController param = HardwareController.FromRegisterEntry(entry);
             HardwareControllerCollection.Add(param);
         }
 
+        // 订阅禁用变更：厂家页调整后重建列表
+        RegisterDisableService.Changed -= OnDisabledChanged;
+        RegisterDisableService.Changed += OnDisabledChanged;
+
         UpdateConnectionState();
+    }
+
+    private void OnDisabledChanged(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            HardwareControllerCollection.Clear();
+            foreach (HRegisterEntry entry in HVariables.RegisterTable
+                .Where(x => x.HIndex.StartsWith("H00", StringComparison.OrdinalIgnoreCase))
+                .Where(x => !RegisterDisableService.IsDisabledForActive(x.SdoIndex, x.SdoSubIndex)))
+            {
+                HardwareControllerCollection.Add(HardwareController.FromRegisterEntry(entry));
+            }
+        });
     }
 
     private void UpdateConnectionState()

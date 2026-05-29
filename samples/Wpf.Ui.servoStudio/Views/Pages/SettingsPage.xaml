@@ -205,5 +205,48 @@
             Margin="0,10,0,0"
             Content="启用 Debug 模式"
             IsChecked="{Binding ViewModel.IsDebugMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock
+            Margin="0,24,0,0"
+            FontSize="20"
+            FontWeight="Medium"
+            Text="通信看门狗" />
+        <TextBlock
+            Margin="0,6,0,0"
+            FontSize="12"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            Text="{Binding ViewModel.CommLostThresholdDisplay}" />
+        <ui:NumberBox
+            Margin="0,10,0,0"
+            Width="160"
+            HorizontalAlignment="Left"
+            Minimum="1"
+            Maximum="30"
+            SpinButtonPlacementMode="Inline"
+            ClearButtonEnabled="False"
+            Value="{Binding ViewModel.CommLostThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <TextBlock
+            Margin="0,24,0,0"
+            FontSize="20"
+            FontWeight="Medium"
+            Text="运动周期同步 (CSP/CSV/CST)" />
+        <TextBlock
+            Margin="0,6,0,0"
+            FontSize="12"
+            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+            TextWrapping="Wrap"
+            Text="选择驱动 CANopen SYNC 与 EtherCAT InOutSync 周期循环的底层定时器。三种实现并存，可在调试时按需切换；其中 SpinWait 抖动最低但占用一个 CPU 核心。" />
+        <ComboBox
+            Margin="0,10,0,0"
+            Width="360"
+            HorizontalAlignment="Left"
+            ItemsSource="{Binding ViewModel.MotionCyclicTimerKinds}"
+            SelectedIndex="{Binding ViewModel.MotionCyclicTimerKindIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <ui:ToggleSwitch
+            Margin="0,10,0,0"
+            Content="启用 PDO + SYNC 路径（关闭则回退到 SDO 周期写）"
+            IsChecked="{Binding ViewModel.MotionPreferPdoForCyclicSync, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
     </StackPanel>
 </Page>

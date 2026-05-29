@@ -41,8 +41,8 @@ public partial class MainWindowViewModel : ViewModel
         Justification = "Demo"
     )]
 
-    private readonly string[] navigationTitle = new string[11]
-    { "设备页", "硬件配置","在线参数辨识","运动配置", "参数配置" , "控制台" , "故障信息", "数据", "固件" ,"Settings" ,"FSM" };
+    private readonly string[] navigationTitle = new string[12]
+    { "设备页", "硬件配置","在线参数辨识","运动配置", "参数配置" , "控制台" , "故障信息", "数据", "固件" , "厂家页", "Settings" ,"FSM" };
     private readonly int errorConst = 1;
 
     public MainWindowViewModel(INavigationService navigationService)
@@ -101,14 +101,11 @@ public partial class MainWindowViewModel : ViewModel
                 MenuItemsSource = new object[]
             {
                 new NavigationViewItem("设备列表",
-                SymbolRegular.TextBulletList20,
+                SymbolRegular.ClipboardBulletListRtl20,
                 typeof(Views.Pages.DeviceSetPages.ListPage)),
-                new NavigationViewItem("添加设备",
-                SymbolRegular.Add24,
-                typeof(Views.Pages.DeviceSetPages.DeviceAddPage)),
-                new NavigationViewItem("移除设备",
-                SymbolRegular.Subtract20,
-                typeof(Views.Pages.DashboardPage)),
+                new NavigationViewItem("总线诊断",
+                SymbolRegular.Pulse20,
+                typeof(Views.Pages.DeviceSetPages.BusDiagnosticsPage)),
             },
 
             },
@@ -127,6 +124,9 @@ public partial class MainWindowViewModel : ViewModel
                 new NavigationViewItem("IO配置",
                 SymbolRegular.ArrowSwap20,
                 typeof(Views.Pages.HardwarePages.IOPage)),
+                new NavigationViewItem("STO配置",
+                SymbolRegular.ShieldLock20,
+                typeof(Views.Pages.HardwarePages.StoConfigPage)),
                 new NavigationViewItem("硬件信息",
                 SymbolRegular.Memory16,
                 typeof(Views.Pages.DashboardPage)),
@@ -140,13 +140,13 @@ public partial class MainWindowViewModel : ViewModel
             {
                 new NavigationViewItem("在线电机参数辨识",
                 SymbolRegular.Clipboard16,
-                typeof(Views.Pages.DashboardPage)),
+                typeof(Views.Pages.TuningPages.MotorIdentificationPage)),
                 new NavigationViewItem("在线惯量辨识",
                 SymbolRegular.CenterHorizontal20,
-                typeof(Views.Pages.DashboardPage)),
+                typeof(Views.Pages.TuningPages.AdvancedTuningPage)),
                 new NavigationViewItem("在线滤波调节",
                 SymbolRegular.DeviceEq20,
-                typeof(Views.Pages.DashboardPage)),
+                typeof(Views.Pages.TuningPages.AdvancedTuningPage)),
             },
             },
             new NavigationViewItem()
@@ -161,9 +161,15 @@ public partial class MainWindowViewModel : ViewModel
                 new NavigationViewItem("运动限制",
                 SymbolRegular.CenterHorizontal20,
                 typeof(Views.Pages.MotionPages.MotionLimitPage)),
+                new NavigationViewItem("运动曲线",
+                SymbolRegular.ArrowTrendingLines20,
+                typeof(Views.Pages.MotionPages.MotionProfilePage)),
+                new NavigationViewItem("多段速度/位置",
+                SymbolRegular.DataHistogram24,
+                typeof(Views.Pages.MotionPages.MultiStepProfilePage)),
                 new NavigationViewItem("振动抑制",
                 SymbolRegular.DeviceEq20,
-                typeof(Views.Pages.DashboardPage)),
+                typeof(Views.Pages.TuningPages.AdvancedTuningPage)),
             },
             },
             new NavigationViewItem()
@@ -178,16 +184,25 @@ public partial class MainWindowViewModel : ViewModel
                 new NavigationViewItem("PID参数调节",
                 SymbolRegular.StreamInputOutput20,
                 typeof(Views.Pages.AppDataPages.PidAdjustPage)),
-                new NavigationViewItem("厂家参数",
-                SymbolRegular.CalendarLock20,
-                typeof(Views.Pages.ParametersPages.FactoryPage)),
             },
             },
             new NavigationViewItem()
             {
                 Content = navigationTitle[5],
                 Icon = new SymbolIcon { Symbol = SymbolRegular.DesktopCursor24 },
-                TargetPageType = typeof(Views.Pages.ControlPage),
+                MenuItemsSource = new object[]
+                {
+                    new NavigationViewItem(
+                        "状态机",
+                        SymbolRegular.DesktopCursor24,
+                        typeof(Views.Pages.ControlPage)
+                    ),
+                    new NavigationViewItem(
+                        "快速控制",
+                        SymbolRegular.DeviceEq20,
+                        typeof(Views.Pages.QuickControlPage)
+                    ),
+                },
             },
             new NavigationViewItem()
             {
@@ -232,9 +247,26 @@ public partial class MainWindowViewModel : ViewModel
                 new NavigationViewItem("EEPROM提取",
                 SymbolRegular.Memory16,
                 typeof(Views.Pages.FirmwarePages.FirmwarePage)),
+            },
+            },
+            new NavigationViewItem()
+            {
+                Content = navigationTitle[9],
+                Icon = new SymbolIcon { Symbol = SymbolRegular.BuildingFactory24 },
+                MenuItemsSource = new object[]
+            {
+                new NavigationViewItem("厂家参数",
+                SymbolRegular.CalendarLock20,
+                typeof(Views.Pages.FactoryPages.FactoryPage)),
                 new NavigationViewItem("厂家固件页面",
                 SymbolRegular.CalendarLock20,
-                typeof(Views.Pages.FirmwarePages.FactoryFirmwarePage)),
+                typeof(Views.Pages.FactoryPages.FactoryFirmwarePage)),
+                new NavigationViewItem("帧格式修改器",
+                SymbolRegular.DataUsageEdit20,
+                typeof(Views.Pages.FactoryPages.FrameFormatEditorPage)),
+                new NavigationViewItem("自动化流程",
+                SymbolRegular.Beaker24,
+                typeof(Views.Pages.FactoryPages.AutomationProcessPage)),
             },
             },
         ];

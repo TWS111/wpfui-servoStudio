@@ -69,20 +69,25 @@ public partial class App
                 _ = services.AddSingleton<ViewModels.DashboardViewModel>();
                 _ = services.AddSingleton<Views.Pages.DeviceSetPages.StartPage>();
                 _ = services.AddSingleton<ViewModels.DeviceSet.StartViewModel>();
-                _ = services.AddSingleton<Views.Pages.DeviceSetPages.DeviceAddPage>();
                 _ = services.AddSingleton<ViewModels.DeviceSet.DeviceAddViewModel>();
                 _ = services.AddSingleton<Views.Pages.DeviceSetPages.ListPage>();
                 _ = services.AddSingleton<ViewModels.DeviceSet.ListViewModel>();
-                _ = services.AddSingleton<Views.Pages.ParametersPages.FactoryPage>();
-                _ = services.AddSingleton<ViewModels.Parameters.FactoryViewModel>();
+                _ = services.AddSingleton<Views.Pages.DeviceSetPages.BusDiagnosticsPage>();
+                _ = services.AddSingleton<ViewModels.DeviceSet.BusDiagnosticsViewModel>();
+                _ = services.AddSingleton<Views.Pages.FactoryPages.FactoryPage>();
+                _ = services.AddSingleton<ViewModels.Factory.FactoryViewModel>();
                 _ = services.AddSingleton<Views.Pages.MotionPages.MotionTypePage>();
                 _ = services.AddSingleton<ViewModels.Motion.MotionTypeViewModel>();
                 _ = services.AddSingleton<Views.Pages.MotionPages.MotionLimitPage>();
                 _ = services.AddSingleton<ViewModels.Motion.MotionLimitViewModel>();
+                _ = services.AddSingleton<Views.Pages.MotionPages.MotionProfilePage>();
+                _ = services.AddSingleton<ViewModels.Motion.MotionProfileViewModel>();
                 _ = services.AddSingleton<Views.Pages.DataPage>();
                 _ = services.AddSingleton<ViewModels.DataViewModel>();
                 _ = services.AddSingleton<Views.Pages.ControlPage>();
                 _ = services.AddSingleton<ViewModels.ControlViewModel>();
+                _ = services.AddSingleton<Views.Pages.QuickControlPage>();
+                _ = services.AddSingleton<ViewModels.QuickControlViewModel>();
                 _ = services.AddSingleton<Views.Pages.HardwarePage>();
                 _ = services.AddSingleton<ViewModels.HardwareViewModel>();
                 _ = services.AddSingleton<Views.Pages.FaultInfoPage>();
@@ -96,12 +101,24 @@ public partial class App
                 _ = services.AddSingleton<ViewModels.Hardware.MotorViewModel>();
                 _ = services.AddSingleton<Views.Pages.HardwarePages.IOPage>();
                 _ = services.AddSingleton<ViewModels.Hardware.IOViewModel>();
+                _ = services.AddSingleton<Views.Pages.HardwarePages.StoConfigPage>();
+                _ = services.AddSingleton<ViewModels.Hardware.StoConfigViewModel>();
+                _ = services.AddSingleton<Views.Pages.TuningPages.MotorIdentificationPage>();
+                _ = services.AddSingleton<ViewModels.Tuning.MotorIdentificationViewModel>();
+                _ = services.AddSingleton<Views.Pages.TuningPages.AdvancedTuningPage>();
+                _ = services.AddSingleton<ViewModels.Tuning.AdvancedTuningViewModel>();
+                _ = services.AddSingleton<Views.Pages.MotionPages.MultiStepProfilePage>();
+                _ = services.AddSingleton<ViewModels.Motion.MultiStepProfileViewModel>();
                 _ = services.AddSingleton<Views.Pages.FirmwarePages.FirmwarePage>();
                 _ = services.AddSingleton<ViewModels.Firmware.EcatEepromViewModel>();
                 _ = services.AddSingleton<Views.Pages.FirmwarePages.FirmwareProgramPage>();
                 _ = services.AddSingleton<ViewModels.Firmware.FirmwareProgramViewModel>();
-                _ = services.AddSingleton<Views.Pages.FirmwarePages.FactoryFirmwarePage>();
-                _ = services.AddSingleton<ViewModels.Firmware.FactoryFirmwareViewModel>();
+                _ = services.AddSingleton<Views.Pages.FactoryPages.FactoryFirmwarePage>();
+                _ = services.AddSingleton<ViewModels.Factory.FactoryFirmwareViewModel>();
+                _ = services.AddSingleton<Views.Pages.FactoryPages.FrameFormatEditorPage>();
+                _ = services.AddSingleton<ViewModels.Factory.FrameFormatEditorViewModel>();
+                _ = services.AddSingleton<Views.Pages.FactoryPages.AutomationProcessPage>();
+                _ = services.AddSingleton<ViewModels.Factory.AutomationProcessViewModel>();
                 _ = services.AddSingleton<Views.Pages.AppDataPages.AppLogPage>();
                 _ = services.AddSingleton<ViewModels.AppData.AppLogViewModel>();
                 _ = services.AddSingleton<Views.Pages.AppDataPages.PidAdjustPage>();
@@ -153,6 +170,8 @@ public partial class App
 
         // Initialize theme-sensitive indicator brush before any window shows
         UpdateBitIndicatorOffBrush();
+        // 把各厂家 CAN 卡 DLL 子目录加入进程 PATH，便于 P/Invoke 自动定位
+        AppendCanNativeDirsToPath();
         Wpf.Ui.Appearance.ApplicationThemeManager.Changed += (theme, _) =>
         {
             UpdateBitIndicatorOffBrush();
@@ -190,6 +209,52 @@ public partial class App
         Application.Current.Resources["BitIndicatorOffBrush"] =
             new System.Windows.Media.SolidColorBrush(color);
     }
+
+    /// <summary>
+    /// 将工程附带的 CAN 厂家 DLL 子目录拼到当前进程 PATH 末尾，
+    /// 让 P/Invoke 在加载 PCANBasic.dll / ControlCAN.dll / zlgcan.dll / usb_device.dll
+    /// 等原生库时能自动找到对应文件（无需用户手动配置环境变量）。
+    /// </summary>
+    private static void AppendCanNativeDirsToPath()
+    {
+        try
+        {
+            string baseDir = AppContext.BaseDirectory;
+            string canRoot = Path.Combine(baseDir, "native", "can");
+            if (!Directory.Exists(canRoot)) return;
+
+            string[] subDirs = ["peak", "controlcan", "zlgcan", "zlgcan/kerneldlls", "toomoss", "itekon"];
+            string oldPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            var sb = new System.Text.StringBuilder(oldPath);
+            foreach (string sub in subDirs)
+            {
+                string full = Path.Combine(canRoot, sub.Replace('/', Path.DirectorySeparatorChar));
+                if (!Directory.Exists(full)) continue;
+                if (oldPath.Contains(full, StringComparison.OrdinalIgnoreCase)) continue;
+                sb.Append(Path.PathSeparator).Append(full);
+                // 注册到 LOAD_LIBRARY_SEARCH_USER_DIRS — zlgcan.dll 内部加载后端 DLL 时需要
+                try { _ = AddDllDirectory(full); } catch { }
+            }
+            Environment.SetEnvironmentVariable("PATH", sb.ToString());
+
+            // 应用已记忆的 ZLG 驱动目录（user-dirs + PATH），并将缺失的后端 DLL
+            // 复制到工程自带 kerneldlls/ 中，确保 zlgcan.dll 无论使用何种搜索方式
+            // 都能找到 USBCAN_E_64.dll / USBCANFD.dll 等设备后端。
+            try { global::Core.CANopen.Adapters.ZlgKernelDllScanner.ApplyCachedDirs(); } catch { }
+
+            // 注册 ControlCAN.dll → iTEKON DLL 的回退解析器：当工程未携带
+            // 原版 ControlCAN.dll 但安装了 iTEKON 的 ECANVCI.dll/ECanVci64.dll 时，
+            // 自动重定向以共用同一组 P/Invoke 函数签名。
+            try { Wpf.Ui.servoStudio.Services.CanNativeResolver.Register(); } catch { }
+        }
+        catch
+        {
+            // 路径配置失败不影响应用启动；适配器在缺失 DLL 时会自动降级
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr AddDllDirectory(string newDirectory);
 
     /// <summary>
     /// Occurs when the application is closing.

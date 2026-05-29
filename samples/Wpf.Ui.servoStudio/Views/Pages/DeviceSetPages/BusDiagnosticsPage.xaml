@@ -1,0 +1,1189 @@
+<Page x:Name="page"
+    x:Class="Wpf.Ui.servoStudio.Views.Pages.DeviceSetPages.BusDiagnosticsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.DeviceSetPages"
+    xmlns:hw="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.HardwarePages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="总线诊断"
+    d:DataContext="{d:DesignInstance local:BusDiagnosticsPage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="800"
+    d:DesignWidth="1100"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    ScrollViewer.CanContentScroll="False"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <hw:InverseBooleanToVisibilityConverter x:Key="InvBoolToVis" />
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- ===== 顶部：状态摘要 ===== -->
+            <ui:Card Grid.Row="0" Margin="0,0,0,12" Padding="16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ui:SymbolIcon Grid.Column="0"
+                                   Symbol="Pulse20"
+                                   FontSize="36"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,16,0"/>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="总线诊断" FontSize="20" FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="协议栈：" Foreground="Gray"/>
+                            <TextBlock Text="{Binding ViewModel.ActiveProtocolText}"
+                                       Foreground="#FF0066CC" FontWeight="SemiBold" Margin="4,0,12,0"/>
+                            <TextBlock Text="状态：" Foreground="Gray"/>
+                            <TextBlock Text="{Binding ViewModel.StatusText}"
+                                       FontWeight="SemiBold" Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <ui:Button Content="开始诊断" Icon="{ui:SymbolIcon Play24}"
+                                   Appearance="Primary"
+                                   MinWidth="110" Height="36" Margin="0,0,8,0"
+                                   Command="{Binding ViewModel.StartCommand}"/>
+                        <ui:Button Content="停止" Icon="{ui:SymbolIcon Stop24}"
+                                   Appearance="Caution"
+                                   MinWidth="90" Height="36" Margin="0,0,8,0"
+                                   Command="{Binding ViewModel.StopCommand}"/>
+                        <ui:Button Content="重置" Icon="{ui:SymbolIcon ArrowClockwise24}"
+                                   MinWidth="90" Height="36"
+                                   Command="{Binding ViewModel.ResetCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </ui:Card>
+
+            <!-- ===== 控制面板 ===== -->
+            <ui:Card Grid.Row="1" Margin="0,0,0,12" Padding="16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="32"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="采样间隔 (ms):"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ui:NumberBox Grid.Column="1"
+                                  Value="{Binding ViewModel.IntervalMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                  Minimum="1" Maximum="10000"
+                                  ClearButtonEnabled="False"
+                                  SpinButtonPlacementMode="Inline"/>
+
+                    <CheckBox Grid.Column="3" Content="EtherCAT 同时探测 SDO (0x6041)"
+                              IsChecked="{Binding ViewModel.ProbeSdo, Mode=TwoWay}"
+                              IsEnabled="{Binding ViewModel.IsProbeSDOAvailable}"
+                              VerticalAlignment="Center"/>
+                </Grid>
+            </ui:Card>
+
+            <!-- ===== 总体指标 ===== -->
+            <ui:CardExpander Grid.Row="2" Margin="0,0,0,12"
+                             Header="通信质量指标（轮询，仅 EtherCAT / Modbus 有效）"
+                             IsExpanded="{Binding ViewModel.IsQualityPanelExpanded, Mode=TwoWay}">
+                <UniformGrid Columns="4" Rows="3" Margin="0,8,0,0">
+                        <StackPanel Margin="0,0,12,12">
+                            <TextBlock Text="总请求数" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.TestCount}" FontSize="22" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,12">
+                            <TextBlock Text="成功" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.SuccessCount}" FontSize="22" FontWeight="SemiBold"
+                                       Foreground="#FF2E7D32"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,12">
+                            <TextBlock Text="失败" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.FailureCount}" FontSize="22" FontWeight="SemiBold"
+                                       Foreground="#FFC62828"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,12">
+                            <TextBlock Text="成功率 (%)" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.SuccessRatePercent, StringFormat={}{0:F2} %}"
+                                       FontSize="22" FontWeight="SemiBold" Foreground="#FF1565C0"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,12">
+                            <TextBlock Text="平均往返时延 (ms)" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.AvgLatencyMs, StringFormat={}{0:F2}}"
+                                       FontSize="20" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,12">
+                            <TextBlock Text="最小时延 (ms)" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.MinLatencyMs, StringFormat={}{0:F2}}"
+                                       FontSize="20" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,12">
+                            <TextBlock Text="最大时延 (ms)" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.MaxLatencyMs, StringFormat={}{0:F2}}"
+                                       FontSize="20" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,12">
+                            <TextBlock Text="最近错误" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.LastErrorText}"
+                                       FontSize="12" TextWrapping="Wrap" Foreground="#FFC62828"/>
+                        </StackPanel>
+
+                        <!-- 主机→从机应答延时（仅 Modbus；EtherCAT 由 SOEM 接管不可见，将保持 0） -->
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="平均应答延时 (ms)" Foreground="Gray" FontSize="12"
+                                       ToolTip="主机发送结束 → 从机首字节到达的间隔，仅 Modbus RTU 有效"/>
+                            <TextBlock Text="{Binding ViewModel.AvgResponseLatencyMs, StringFormat={}{0:F2}}"
+                                       FontSize="20" FontWeight="SemiBold" Foreground="#FF6A1B9A"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="最小应答延时 (ms)" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.MinResponseLatencyMs, StringFormat={}{0:F2}}"
+                                       FontSize="20" FontWeight="SemiBold" Foreground="#FF6A1B9A"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="最大应答延时 (ms)" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.MaxResponseLatencyMs, StringFormat={}{0:F2}}"
+                                       FontSize="20" FontWeight="SemiBold" Foreground="#FF6A1B9A"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="最近应答延时 (ms)" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.LastResponseLatencyMs, StringFormat={}{0:F2}}"
+                                       FontSize="20" FontWeight="SemiBold" Foreground="#FF6A1B9A"/>
+                        </StackPanel>
+                    </UniformGrid>
+            </ui:CardExpander>
+
+            <!-- ===== EtherCAT 诊断面板 ===== -->
+            <ui:Card Grid.Row="3" Margin="0,0,0,12" Padding="16"
+                     Visibility="{Binding ViewModel.DeviceAdd.IsEthernetConnected, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <ui:SymbolIcon Symbol="DataUsage20" FontSize="20" Margin="0,0,8,0"/>
+                        <TextBlock Text="EtherCAT 诊断" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- 行 1：概览 -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="网卡" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.DeviceAdd.SelectedEthernetName}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="从站名称" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.DeviceAdd.EthernetSlaveNameInfo}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="SOEM 状态" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.EtherCatLastState}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3">
+                            <TextBlock Text="掉帧/异常累计" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.EtherCatLostCount}" FontWeight="SemiBold"
+                                       Foreground="#FFC62828"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Separator Margin="0,0,0,12"/>
+
+                    <!-- 行 2：AL 状态机（来自 ESC 寄存器 0x0130 / 0x0134）-->
+                    <TextBlock Text="AL 状态机（ESC 寄存器）" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="当前状态 (0x0130)" Foreground="Gray" FontSize="12"
+                                       ToolTip="ESC Application Layer Status。Op=正常运行；Safe-Op=PDO 数据停止；[!]=状态机有错误标志"/>
+                            <TextBlock Text="{Binding ViewModel.EcatAlStateText, FallbackValue='—'}"
+                                       FontWeight="SemiBold" FontSize="15">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatAlError}" Value="True">
+                                                <Setter Property="Foreground" Value="#FFC62828"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="AL 错误码 (0x0134)" Foreground="Gray" FontSize="12"
+                                       ToolTip="AL Status Code。0x0000=无错误；非零值说明状态切换失败原因"/>
+                            <TextBlock FontWeight="SemiBold" FontSize="15">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatAlStatusCode}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                                <Run Text="0x"/><Run Text="{Binding ViewModel.EcatAlStatusCode, StringFormat={}{0:X4}, Mode=OneWay}"/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="错误码说明" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.EcatAlStatusCodeText, FallbackValue='—'}"
+                                       FontWeight="SemiBold" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatAlStatusCode}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+
+                    <Separator Margin="0,0,0,12"/>
+
+                    <!-- 行 3：ESC 错误计数器 -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="ESC 错误计数器" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="（增量，自本次诊断开始；灰色=正常，红色=存在异常）"
+                                   FontSize="12" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <UniformGrid Columns="4" Rows="2">
+
+                        <StackPanel Margin="0,0,12,8">
+                            <TextBlock Text="端口 A 帧错误" Foreground="Gray" FontSize="12"
+                                       ToolTip="端口 A 帧格式/CRC 错误（ESC 0x0301）：通常由接触不良、线缆损坏或拓扑环路故障引起"/>
+                            <TextBlock Text="{Binding ViewModel.EcatInvFrameA}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatInvFrameA}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,8">
+                            <TextBlock Text="端口 A 物理错误" Foreground="Gray" FontSize="12"
+                                       ToolTip="端口 A 物理层信号错误（ESC 0x0300）：通常由线缆质量差、超长或电磁干扰引起"/>
+                            <TextBlock Text="{Binding ViewModel.EcatRxErrA}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatRxErrA}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,8">
+                            <TextBlock Text="端口 B 帧错误" Foreground="Gray" FontSize="12"
+                                       ToolTip="端口 B 帧格式/CRC 错误（ESC 0x0303）：下游环路方向"/>
+                            <TextBlock Text="{Binding ViewModel.EcatInvFrameB}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatInvFrameB}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,8">
+                            <TextBlock Text="端口 B 物理错误" Foreground="Gray" FontSize="12"
+                                       ToolTip="端口 B 物理层信号错误（ESC 0x0302）"/>
+                            <TextBlock Text="{Binding ViewModel.EcatRxErrB}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatRxErrB}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="ECAT 处理单元错误" Foreground="Gray" FontSize="12"
+                                       ToolTip="ECAT 处理单元内部错误（ESC 0x030C）：持续增加说明 ESC 芯片存在严重问题"/>
+                            <TextBlock Text="{Binding ViewModel.EcatProcErr}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFB71C1C"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatProcErr}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="PDI 错误" Foreground="Gray" FontSize="12"
+                                       ToolTip="从站 PDI（Process Data Interface）错误（ESC 0x030D）：ESC 与从站固件之间的接口错误"/>
+                            <TextBlock Text="{Binding ViewModel.EcatPdiErr}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFB71C1C"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatPdiErr}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="端口 A 链路丢失" Foreground="Gray" FontSize="12"
+                                       ToolTip="端口 A 物理链路丢失次数（ESC 0x0310）：任意增量说明链路发生过瞬断，需检查接线"/>
+                            <TextBlock Text="{Binding ViewModel.EcatLinkLostA}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFB71C1C"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatLinkLostA}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="端口 B 链路丢失" Foreground="Gray" FontSize="12"
+                                       ToolTip="端口 B 物理链路丢失次数（ESC 0x0311）"/>
+                            <TextBlock Text="{Binding ViewModel.EcatLinkLostB}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFB71C1C"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.EcatLinkLostB}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                    </UniformGrid>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ===== Modbus 诊断面板 ===== -->
+            <ui:Card Grid.Row="4" Margin="0,0,0,12" Padding="16"
+                     Visibility="{Binding ViewModel.DeviceAdd.IsModbusConnected, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <ui:SymbolIcon Symbol="UsbStick20" FontSize="20" Margin="0,0,8,0"/>
+                        <TextBlock Text="Modbus RTU 诊断" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="串口状态" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.DeviceAdd.ModbusStatusText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="从站地址" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.DeviceAdd.ModbusSlaveAddress}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="从站名称" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.DeviceAdd.ModbusSlaveNameInfo}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="错误分布" FontWeight="SemiBold" Margin="0,4,0,8"/>
+                    <UniformGrid Columns="5" Rows="1">
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="超时" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.ModbusTimeoutCount}" FontSize="18" FontWeight="SemiBold"
+                                       Foreground="#FFEF6C00"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="CRC 错误" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.ModbusCrcErrorCount}" FontSize="18" FontWeight="SemiBold"
+                                       Foreground="#FFC62828"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="非法响应" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.ModbusInvalidResponseCount}" FontSize="18" FontWeight="SemiBold"
+                                       Foreground="#FFC62828"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="协议异常" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.ModbusProtocolErrorCount}" FontSize="18" FontWeight="SemiBold"
+                                       Foreground="#FFB71C1C"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="其他" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.ModbusOtherErrorCount}" FontSize="18" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </UniformGrid>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ===== USB 诊断面板 ===== -->
+            <ui:Card Grid.Row="5" Margin="0,0,0,12" Padding="16"
+                     Visibility="{Binding ViewModel.DeviceAdd.IsUsbConnected, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="UsbStick20" FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="USB 诊断" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text="（事件驱动，与三大协议栈并行独立）"
+                                       FontSize="12" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:Button Appearance="Primary" Margin="0,0,8,0"
+                                       Command="{Binding ViewModel.StartUsbLoopbackCommand}"
+                                       Icon="{ui:SymbolIcon Play20}" Content="开始回环"/>
+                            <ui:Button Appearance="Caution" Margin="0,0,8,0"
+                                       Command="{Binding ViewModel.StopUsbLoopbackCommand}"
+                                       Icon="{ui:SymbolIcon Stop20}" Content="停止"/>
+                            <ui:Button Command="{Binding ViewModel.ResetUsbLoopbackCommand}"
+                                       Icon="{ui:SymbolIcon ArrowReset20}" Content="重置"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 连接概览 -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="工作方式" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.DeviceAdd.UsbStatusText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="设备信息" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.DeviceAdd.UsbDeviceInfo}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="运行状态" Foreground="Gray" FontSize="12"/>
+                            <TextBlock FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="已停止"/>
+                                        <Setter Property="Foreground" Value="Gray"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.DeviceAdd.UsbMaster.IsRunning}" Value="True">
+                                                <Setter Property="Text" Value="接收中"/>
+                                                <Setter Property="Foreground" Value="#FF2E7D32"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+
+                    <Separator Margin="0,0,0,12"/>
+
+                    <!-- 收发统计 -->
+                    <UniformGrid Columns="4" Rows="1" Margin="0,0,0,12">
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="已发送包" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbTxCount}" FontSize="20" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="已接收包" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbRxCount}" FontSize="20" FontWeight="SemiBold"
+                                       Foreground="#FF1565C0"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="接收错误" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbErrorCount}" FontSize="20" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbErrorCount}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="最近错误" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLastErrorText}"
+                                       FontSize="12" TextWrapping="Wrap" Foreground="#FFC62828"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <!-- 最近收发帧 -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 发送帧 TX -->
+                        <StackPanel Grid.Column="0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <ui:SymbolIcon Symbol="ArrowUpload20" FontSize="13"
+                                               Foreground="#FF1976D2" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="最近发送帧" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           Foreground="#FF1976D2"/>
+                                <TextBlock Text="{Binding ViewModel.UsbLastTxTimestamp}"
+                                           FontSize="12" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <Border BorderThickness="1" CornerRadius="4"
+                                    BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                    Background="{DynamicResource LayerFillColorDefaultBrush}">
+                                <TextBox FontFamily="Consolas, Courier New" FontSize="12"
+                                         IsReadOnly="True" TextWrapping="Wrap"
+                                         MinHeight="40" MaxHeight="80"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Background="Transparent" BorderThickness="0"
+                                         Margin="10,6"
+                                         Text="{Binding ViewModel.UsbLastTxFrameHex, Mode=OneWay}"/>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- 接收帧 RX -->
+                        <StackPanel Grid.Column="2">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <ui:SymbolIcon Symbol="ArrowDownload20" FontSize="13"
+                                               Foreground="#FF2E7D32" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="最近接收帧" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           Foreground="#FF2E7D32"/>
+                                <TextBlock Text="{Binding ViewModel.UsbLastRxTimestamp}"
+                                           FontSize="12" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <Border BorderThickness="1" CornerRadius="4"
+                                    BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                    Background="{DynamicResource LayerFillColorDefaultBrush}">
+                                <TextBox FontFamily="Consolas, Courier New" FontSize="12"
+                                         IsReadOnly="True" TextWrapping="Wrap"
+                                         MinHeight="40" MaxHeight="80"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Background="Transparent" BorderThickness="0"
+                                         Margin="10,6"
+                                         Text="{Binding ViewModel.UsbLastRxFrameHex, Mode=OneWay}"/>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <Separator Margin="0,16,0,12"/>
+
+                    <!-- ===== 发送故障分析 ===== -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <ui:SymbolIcon Symbol="Warning20" FontSize="18" Margin="0,0,8,0"
+                                       VerticalAlignment="Center">
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="ui:SymbolIcon">
+                                    <Setter Property="Foreground" Value="#FFEF6C00"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ViewModel.UsbHasFault}" Value="False">
+                                            <Setter Property="Foreground" Value="Gray"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:SymbolIcon.Style>
+                        </ui:SymbolIcon>
+                        <TextBlock Text="发送故障分析" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- 故障计数行 -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 超时 0x79 计数 -->
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="超时 0x79（NAK / FIFO 满）" Foreground="Gray" FontSize="12"
+                                       ToolTip="Win32 错误码 121 (0x79) = ERROR_SEM_TIMEOUT。最常见原因：从机 BULK OUT 端点未被固件服务，FIFO 满后持续 NAK 导致主机写管道超时。"/>
+                            <TextBlock Text="{Binding ViewModel.UsbSendFailGle0x79Count}"
+                                       FontSize="20" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFEF6C00"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbSendFailGle0x79Count}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- 其他失败计数 -->
+                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                            <TextBlock Text="其他发送失败" Foreground="Gray" FontSize="12"
+                                       ToolTip="非 0x79 的其他 Win32 发送失败，如 0x57(参数无效)、0x1F(设备错误)等，需查看最近错误文本。"/>
+                            <TextBlock Text="{Binding ViewModel.UsbSendFailGleOtherCount}"
+                                       FontSize="20" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbSendFailGleOtherCount}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- 故障分类 -->
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="故障归类" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbFaultCategoryText}"
+                                       FontWeight="SemiBold" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFEF6C00"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbHasFault}" Value="False">
+                                                <Setter Property="Foreground" Value="#FF2E7D32"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 故障提示 Banner，仅在检测到故障时显示 -->
+                    <Border Margin="0,0,0,12" Padding="12,10" CornerRadius="4"
+                            Background="{DynamicResource LayerFillColorDefaultBrush}"
+                            BorderThickness="1" BorderBrush="#FFEF6C00"
+                            Visibility="{Binding ViewModel.UsbHasFault, Converter={StaticResource BoolToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:SymbolIcon Grid.Column="0" Symbol="Warning20" FontSize="18"
+                                           Foreground="#FFEF6C00" VerticalAlignment="Top" Margin="0,1,10,0"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ViewModel.UsbFaultHintText}"
+                                       TextWrapping="Wrap" Foreground="#FF7B3F00"
+                                       FontSize="12" LineHeight="18">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActualTheme, RelativeSource={RelativeSource AncestorType=Page}}" Value="Dark">
+                                                <Setter Property="Foreground" Value="#FFFFB74D"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+
+                    <Separator Margin="0,0,0,12"/>
+
+                    <!-- ===== 接收故障分析 ===== -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <ui:SymbolIcon Symbol="Warning20" FontSize="18" Margin="0,0,8,0"
+                                       VerticalAlignment="Center">
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="ui:SymbolIcon">
+                                    <Setter Property="Foreground" Value="#FFEF6C00"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ViewModel.UsbRxHasFault}" Value="False">
+                                            <Setter Property="Foreground" Value="Gray"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:SymbolIcon.Style>
+                        </ui:SymbolIcon>
+                        <TextBlock Text="接收故障分析" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- 接收故障计数行 -->
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 接收错误计数 -->
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="接收错误次数" Foreground="Gray" FontSize="12"
+                                       ToolTip="BULK IN 端点读取失败累计次数，包含 CRC 错误、pipe stall、设备断开等所有接收端错误。"/>
+                            <TextBlock Text="{Binding ViewModel.UsbErrorCount}"
+                                       FontSize="20" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFEF6C00"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbErrorCount}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- 回环丢包计数 -->
+                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                            <TextBlock Text="回环丢包" Foreground="Gray" FontSize="12"
+                                       ToolTip="回环测试中从机未在超时期内回送数据的包数。仅回环测试运行期间有效。"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackDropCount}"
+                                       FontSize="20" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFEF6C00"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbLoopbackDropCount}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- 接收故障分类 -->
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="故障归类" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbRxFaultCategoryText}"
+                                       FontWeight="SemiBold" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFEF6C00"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbRxHasFault}" Value="False">
+                                                <Setter Property="Foreground" Value="#FF2E7D32"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 接收故障提示 Banner -->
+                    <Border Margin="0,0,0,12" Padding="12,10" CornerRadius="4"
+                            Background="{DynamicResource LayerFillColorDefaultBrush}"
+                            BorderThickness="1" BorderBrush="#FFEF6C00"
+                            Visibility="{Binding ViewModel.UsbRxHasFault, Converter={StaticResource BoolToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:SymbolIcon Grid.Column="0" Symbol="Warning20" FontSize="18"
+                                           Foreground="#FFEF6C00" VerticalAlignment="Top" Margin="0,1,10,0"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ViewModel.UsbRxFaultHintText}"
+                                       TextWrapping="Wrap" Foreground="#FF7B3F00"
+                                       FontSize="12" LineHeight="18">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActualTheme, RelativeSource={RelativeSource AncestorType=Page}}" Value="Dark">
+                                                <Setter Property="Foreground" Value="#FFFFB74D"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+
+                    <Separator Margin="0,0,0,12"/>
+
+                    <!-- 回环测试 -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <ui:SymbolIcon Symbol="ArrowSync20" FontSize="18" Margin="0,0,8,0"/>
+                        <TextBlock Text="回环测试" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="（从机须回送 Loopback 通道帧，探测延时 / 带宽 / 完整性）"
+                                   FontSize="12" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- 配置行 -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="包大小 (B)：" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ui:NumberBox Grid.Column="1"
+                                      Minimum="14" Maximum="512" ClearButtonEnabled="False"
+                                      Value="{Binding ViewModel.UsbLoopbackPacketSize, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                      IsEnabled="{Binding ViewModel.IsUsbLoopbackNotRunning}"/>
+
+                        <TextBlock Grid.Column="3" Text="间隔 (ms)：" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ui:NumberBox Grid.Column="4"
+                                      Minimum="0" Maximum="10000" ClearButtonEnabled="False"
+                                      Value="{Binding ViewModel.UsbLoopbackIntervalMs, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                      IsEnabled="{Binding ViewModel.IsUsbLoopbackNotRunning}"/>
+                    </Grid>
+
+                    <!-- 定时器类型选择 -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="发包定时器：" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding ViewModel.DiagTimerKinds}"
+                                  SelectedIndex="{Binding ViewModel.DiagTimerKindIndex, Mode=TwoWay}"
+                                  IsEnabled="{Binding ViewModel.IsUsbLoopbackNotRunning}"/>
+                    </Grid>
+
+                    <!-- 统计数字：包计数 + 成功率 -->
+                    <UniformGrid Columns="5" Rows="1" Margin="0,0,0,10">
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="已发包" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackSentCount}" FontSize="18" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="回声成功" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackReceivedCount}" FontSize="18" FontWeight="SemiBold"
+                                       Foreground="#FF2E7D32"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="丢包" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackDropCount}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFEF6C00"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbLoopbackDropCount}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="数据错误" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackErrorCount}" FontSize="18" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFC62828"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbLoopbackErrorCount}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,0">
+                            <TextBlock Text="成功率" Foreground="Gray" FontSize="12"/>
+                            <TextBlock FontSize="18" FontWeight="SemiBold"
+                                       Text="{Binding ViewModel.UsbLoopbackSuccessRatePercent, StringFormat={}{0:F1} %}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FF2E7D32"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.UsbLoopbackSentCount}" Value="0">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <!-- 往返时延 -->
+                    <TextBlock Text="往返时延 (RTT)" FontWeight="SemiBold" Margin="0,4,0,8"/>
+                    <UniformGrid Columns="4" Rows="1" Margin="0,0,0,10">
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="最小" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackMinRttMs, StringFormat={}{0:F2} ms}"
+                                       FontSize="18" FontWeight="SemiBold" Foreground="#FF1565C0"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="平均" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackAvgRttMs, StringFormat={}{0:F2} ms}"
+                                       FontSize="18" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="最大" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackMaxRttMs, StringFormat={}{0:F2} ms}"
+                                       FontSize="18" FontWeight="SemiBold" Foreground="#FFEF6C00"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,0">
+                            <TextBlock Text="最近" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding ViewModel.UsbLoopbackLastRttMs, StringFormat={}{0:F2} ms}"
+                                       FontSize="18" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <!-- 带宽 -->
+                    <Grid Margin="0,4,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="带宽测量" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="速率上限：" Foreground="Gray" FontSize="12"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ui:ToggleSwitch IsChecked="{Binding ViewModel.UsbHighSpeedMode, Mode=TwoWay}"
+                                             OffContent="全速 1.5 MB/s"
+                                             OnContent="高速 60 MB/s"
+                                             ToolTip="带宽百分比的分母基准。默认 USB 2.0 全速（12 Mbps），打开切换为 USB 2.0 高速（480 Mbps），选择自动记忆。"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 双向合计带宽 -->
+                    <TextBlock Text="双向合计" Foreground="Gray" FontSize="12" Margin="0,0,0,2"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="120">
+                            <Run Text="{Binding ViewModel.UsbLoopbackThroughputMbps, StringFormat={}{0:F2}}"
+                                 FontSize="22" FontWeight="SemiBold" Foreground="#FF1565C0"/>
+                            <Run Text=" MB/s" Foreground="Gray" FontSize="14"/>
+                        </TextBlock>
+
+                        <ProgressBar Grid.Column="1" Height="14" VerticalAlignment="Center"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding ViewModel.UsbLoopbackThroughputPercent, Mode=OneWay}"/>
+
+                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Text="{Binding ViewModel.UsbLoopbackThroughputPercent, StringFormat={}{0:F1} %}"
+                                   Foreground="Gray" FontSize="12"/>
+                    </Grid>
+
+                    <!-- 上行带宽（从机 → 上位机） -->
+                    <TextBlock Text="上行（从机 → 上位机）" Foreground="Gray" FontSize="12" Margin="0,0,0,2"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="120">
+                            <Run Text="{Binding ViewModel.UsbLoopbackUplinkThroughputMbps, StringFormat={}{0:F2}}"
+                                 FontSize="18" FontWeight="SemiBold" Foreground="#FF2E7D32"/>
+                            <Run Text=" MB/s" Foreground="Gray" FontSize="13"/>
+                        </TextBlock>
+
+                        <ProgressBar Grid.Column="1" Height="12" VerticalAlignment="Center"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding ViewModel.UsbLoopbackUplinkThroughputPercent, Mode=OneWay}"/>
+
+                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Text="{Binding ViewModel.UsbLoopbackUplinkThroughputPercent, StringFormat={}{0:F1} %}"
+                                   Foreground="Gray" FontSize="12"/>
+                    </Grid>
+
+                    <!-- 下行带宽（上位机 → 从机） -->
+                    <TextBlock Text="下行（上位机 → 从机）" Foreground="Gray" FontSize="12" Margin="0,0,0,2"/>
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="120">
+                            <Run Text="{Binding ViewModel.UsbLoopbackDownlinkThroughputMbps, StringFormat={}{0:F2}}"
+                                 FontSize="18" FontWeight="SemiBold" Foreground="#FF1976D2"/>
+                            <Run Text=" MB/s" Foreground="Gray" FontSize="13"/>
+                        </TextBlock>
+
+                        <ProgressBar Grid.Column="1" Height="12" VerticalAlignment="Center"
+                                     Minimum="0" Maximum="100"
+                                     Value="{Binding ViewModel.UsbLoopbackDownlinkThroughputPercent, Mode=OneWay}"/>
+
+                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Text="{Binding ViewModel.UsbLoopbackDownlinkThroughputPercent, StringFormat={}{0:F1} %}"
+                                   Foreground="Gray" FontSize="12"/>
+                    </Grid>
+                    <TextBlock FontSize="11" Foreground="Gray" Margin="0,0,0,0">
+                        <Run Text="参考基准："/>
+                        <Run Text="{Binding ViewModel.UsbBandwidthCeilingText, Mode=OneWay}"/>
+                        <Run Text="，实际受 Echo 往返影响"/>
+                    </TextBlock>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ===== 帧内容预览 ===== -->
+            <ui:Card Grid.Row="6"
+                     Margin="0,0,0,12" Padding="16"
+                     Visibility="{Binding ViewModel.IsDebugMode, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <ui:SymbolIcon Symbol="DocumentBulletList20" FontSize="20" Margin="0,0,8,0"/>
+                        <TextBlock Text="帧内容预览" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="（刺新率 ≤ 2 Hz，不影响通信）"
+                                   FontSize="12" Foreground="Gray" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <TextBlock Text="{Binding ViewModel.LastFrameTimestamp}"
+                                   FontSize="12" Foreground="Gray" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                    </StackPanel>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 发送帧 -->
+                        <Border Grid.Column="0" BorderThickness="1" CornerRadius="4"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                Background="{DynamicResource LayerFillColorDefaultBrush}">
+                            <StackPanel Margin="10,8">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <ui:SymbolIcon Symbol="ArrowUpload20" FontSize="14"
+                                                   Foreground="#FF1976D2" Margin="0,0,6,0"
+                                                   VerticalAlignment="Center"/>
+                                    <TextBlock Text="发送帧 (TX)" FontWeight="SemiBold"
+                                               Foreground="#FF1976D2" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ViewModel.LastTxFrameDesc}"
+                                               FontSize="11" Foreground="Gray"
+                                               VerticalAlignment="Center" Margin="10,0,0,0"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <TextBox FontFamily="Consolas, Courier New" FontSize="12"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="60" MaxHeight="120"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Background="Transparent" BorderThickness="0"
+                                         Text="{Binding ViewModel.LastTxFrameHex, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 接收帧 -->
+                        <Border Grid.Column="2" BorderThickness="1" CornerRadius="4"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                Background="{DynamicResource LayerFillColorDefaultBrush}">
+                            <StackPanel Margin="10,8">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <ui:SymbolIcon Symbol="ArrowDownload20" FontSize="14"
+                                                   Foreground="#FF2E7D32" Margin="0,0,6,0"
+                                                   VerticalAlignment="Center"/>
+                                    <TextBlock Text="接收帧 (RX)" FontWeight="SemiBold"
+                                               Foreground="#FF2E7D32" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ViewModel.LastRxFrameDesc}"
+                                               FontSize="11" Foreground="Gray"
+                                               VerticalAlignment="Center" Margin="10,0,0,0"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <TextBox FontFamily="Consolas, Courier New" FontSize="12"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="60" MaxHeight="120"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Background="Transparent" BorderThickness="0"
+                                         Text="{Binding ViewModel.LastRxFrameHex, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ===== 未连接提示 ===== -->
+            <ui:Card Grid.Row="7" Margin="0,0,0,12" Padding="20"
+                     Visibility="{Binding ViewModel.DeviceAdd.IsAnyDeviceConnected, Converter={StaticResource InvBoolToVis}}">
+                <StackPanel HorizontalAlignment="Center">
+                    <ui:SymbolIcon Symbol="PlugDisconnected20" FontSize="32"
+                                   HorizontalAlignment="Center" Foreground="Gray" Margin="0,0,0,8"/>
+                    <TextBlock Text="尚未连接任何设备，请先在“添加设备”页完成连接后再启动诊断。"
+                               TextAlignment="Center" Foreground="Gray"/>
+                </StackPanel>
+            </ui:Card>
+        </Grid>
+    </ScrollViewer>
+</Page>

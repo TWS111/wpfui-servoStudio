@@ -33,7 +33,7 @@
         
         <ui:Button      
             Command="{Binding ViewModel.ShowDialogCommand}"
-            CommandParameter="{x:Type local:DeviceAddPage}"  
+            CommandParameter="{x:Type local:ListPage}"
             VerticalAlignment="Top"
             Width="200"
             Height="90"

@@ -1,0 +1,2 @@
+# 把 ControlCAN.dll (x64) 与 kerneldlls\ 放入此目录
+此处用于存放 ZLG/创芯科技/致远电子等共用的 ControlCAN.dll。

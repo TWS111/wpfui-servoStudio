@@ -727,6 +727,8 @@ public sealed partial class DataSaveViewModel : ViewModel, IDisposable
 
         foreach (HRegisterEntry entry in HVariables.RegisterTable)
         {
+            // 在当前活动协议栈下被禁用的寄存器不出现在数据保存清单中
+            if (RegisterDisableService.IsDisabledForActive(entry.SdoIndex, entry.SdoSubIndex)) continue;
             yield return new DataVariableItem
             {
                 Group = string.IsNullOrWhiteSpace(entry.GroupName) ? "从机参数" : entry.GroupName,

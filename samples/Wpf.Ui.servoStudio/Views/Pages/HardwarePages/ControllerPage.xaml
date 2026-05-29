@@ -290,6 +290,26 @@
                 </DataGrid.Columns>
             </DataGrid>
 
+            <!-- ═══════ H0D 辅助命令 ═══════ -->
+            <TextBlock Margin="0,20,0,6" FontSize="16" FontWeight="SemiBold" Text="辅助命令 (H0D)" />
+            <ui:Card Margin="0,0,0,12" Padding="16">
+                <StackPanel>
+                    <TextBlock Margin="0,0,0,10" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="点击按钮向当前轴写入 1 触发对应命令。参数存储将持久化所有已修改的 H 参数。" />
+                    <WrapPanel>
+                        <ui:Button Margin="0,0,8,8" Content="软件复位 (H0D.01)" Command="{Binding ViewModel.SoftResetCommand}" />
+                        <ui:Button Margin="0,0,8,8" Content="故障复位 (H0D.02)" Command="{Binding ViewModel.FaultResetCommand}" />
+                        <ui:Button Margin="0,0,8,8" Appearance="Primary" Content="参数存储 (H0D.03)" Command="{Binding ViewModel.ParamSaveCommand}" />
+                        <ui:Button Margin="0,0,8,8" Content="主动回零 (H0D.05)" Command="{Binding ViewModel.HomingTriggerCommand}" />
+                        <ui:Button Margin="0,0,8,8" Appearance="Danger" Content="紧急停机 (H0D.06)" Command="{Binding ViewModel.EmergencyStopCommand}" />
+                    </WrapPanel>
+                    <TextBlock Margin="0,4,0,0" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="{Binding ViewModel.H0DStatus}" />
+                </StackPanel>
+            </ui:Card>
+
         </StackPanel>
     </ScrollViewer>
 </Page>

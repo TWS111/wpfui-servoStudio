@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Controls;
 using Wpf.Ui.servoStudio.Services;
+using Wpf.Ui.servoStudio.ViewModels;
 using Wpf.Ui.servoStudio.ViewModels.AppData;
 
 namespace Wpf.Ui.servoStudio.Views;
@@ -17,6 +18,7 @@ namespace Wpf.Ui.servoStudio.Views;
 public partial class MainWindow : INavigationWindow
 {
     private readonly PageUsageTracker? _usageTracker;
+    private readonly HomeViewModel? _homeViewModel;
     private bool _firstHomeNavHandled = false;
 
     public ViewModels.MainWindowViewModel ViewModel { get; }
@@ -41,10 +43,12 @@ public partial class MainWindow : INavigationWindow
         try
         {
             _usageTracker = App.Services.GetService(typeof(PageUsageTracker)) as PageUsageTracker;
+            _homeViewModel = App.Services.GetService(typeof(HomeViewModel)) as HomeViewModel;
         }
         catch
         {
             _usageTracker = null;
+            _homeViewModel = null;
         }
 
         // 订阅导航事件 → 写入应用日志（包含每个被打开的页面）
@@ -53,7 +57,12 @@ public partial class MainWindow : INavigationWindow
         // 启动时默认最大化：在 SourceInitialized 后设置，避免 FluentWindow
         // + ExtendsContentIntoTitleBar 在 XAML 阶段设置 WindowState=Maximized 导致
         // 窗口顶部越过屏幕工作区的问题。
-        SourceInitialized += (_, _) => WindowState = WindowState.Maximized;
+        SourceInitialized += (_, _) =>
+        {
+            WindowState = WindowState.Maximized;
+            // 注册全局 USB 设备热插拔监听（设备添加/连接页等订阅 DevicesChanged 事件自动刷新）。
+            UsbDeviceWatcher.Start();
+        };
     }
 
     private void OnRootNavigated(NavigationView sender, NavigatedEventArgs args)
@@ -66,6 +75,9 @@ public partial class MainWindow : INavigationWindow
 
             AppLogViewModel.LogNavigation(pageType);
             _usageTracker?.RecordVisit(pageType);
+
+            // 每次导航后刷新首页快速入口，确保访问记录即时反映
+            _homeViewModel?.RefreshQuickAccess();
 
             // 首次进入首页：延迟 0.5s 展开所有一级菜单，0.8s 后自动收起
             if (!_firstHomeNavHandled && pageType == typeof(Pages.HomePage))

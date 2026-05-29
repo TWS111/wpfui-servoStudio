@@ -16,11 +16,170 @@
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     mc:Ignorable="d">
 
-    <Grid Margin="20, 20, 20, 20" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <TextBlock Text="This Page is not aviliable now"
-               HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                   Foreground="Gray"
-                FontSize="30"/>
-    </Grid>
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20">
+
+            <!-- 顶部连接信息 + 控制 -->
+            <Border Margin="0,0,0,12" Padding="14" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Left" FontSize="15" FontWeight="Medium" VerticalAlignment="Center"
+                               Text="{Binding ViewModel.ConnectionInfo}"/>
+                    <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Text="刷新间隔(ms):"/>
+                        <ui:NumberBox Width="100" Margin="0,0,12,0" Minimum="50" Maximum="5000"
+                                      ClearButtonEnabled="False" SpinButtonPlacementMode="Inline"
+                                      Value="{Binding ViewModel.RefreshIntervalMs, UpdateSourceTrigger=LostFocus}"/>
+                        <CheckBox Margin="0,0,12,0" VerticalAlignment="Center" Content="自动刷新"
+                                  IsChecked="{Binding ViewModel.IsAutoRefresh, Mode=TwoWay}"/>
+                        <ui:Button Content="读取一次 Read" Command="{Binding ViewModel.ReadOnceCommand}" MinWidth="120"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- 关键指标卡片 -->
+            <UniformGrid Columns="4" Rows="3">
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="电机转速 ActualSpeed" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.ActualSpeed}"/>
+                        <TextBlock Text="rpm  H0B.00" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="速度指令 SpeedCmd" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.SpeedCmdInput}"/>
+                        <TextBlock Text="rpm  H0B.01" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="转矩指令 TorqueCmd" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.InternalTorqueCmd}"/>
+                        <TextBlock Text="%    H0B.02" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="位置指令脉冲速度" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.PosCmdPulseSpeed}"/>
+                        <TextBlock Text="rpm  H0B.03" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="电机温度 MotorTemp" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.MotorTemp}"/>
+                        <TextBlock Text="°C   H0B.07" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="MOS 温度 MosTemp" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.MosTemp}"/>
+                        <TextBlock Text="°C   H0B.27" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="母线电压 BusVoltage" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.BusVoltage}"/>
+                        <TextBlock Text="V    H0B.26" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="相电流有效值 PhaseI" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.PhaseCurrent}"/>
+                        <TextBlock Text="(原始) H0B.24" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="位置偏差 EncoderBias" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.EncoderBias}"/>
+                        <TextBlock Text="pulse H0B.15" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="直流母线电压 (实时)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="28" FontWeight="Bold" FontFamily="Consolas"
+                                   Text="{Binding ViewModel.BusVoltageMonitor}"/>
+                        <TextBlock Text="V    H0B.13" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <ui:Card.Style>
+                        <Style TargetType="ui:Card">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ViewModel.HasFault}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}"/>
+                                    <Setter Property="BorderThickness" Value="2"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ui:Card.Style>
+                    <StackPanel>
+                        <TextBlock Text="当前故障码 FaultCode" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <TextBlock FontSize="26" FontWeight="Bold" FontFamily="Consolas"
+                                       Text="{Binding ViewModel.FaultCodeHex}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.HasFault}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock FontSize="15" FontWeight="SemiBold" VerticalAlignment="Bottom"
+                                       Margin="10,0,0,3" Text="{Binding ViewModel.FaultName}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.HasFault}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="{Binding ViewModel.FaultDetail}"
+                                   Visibility="{Binding ViewModel.HasFault, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock Text="     H0B.30" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Margin="6" Padding="14">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="状态 Status" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock FontSize="13" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="{Binding ViewModel.H0BStatus}"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    </StackPanel>
+                </ui:Card>
+            </UniformGrid>
+
+        </StackPanel>
+    </ScrollViewer>
 </Page>

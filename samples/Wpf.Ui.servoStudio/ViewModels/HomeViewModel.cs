@@ -4,8 +4,8 @@
 // All Rights Reserved.
 
 using System.Collections.ObjectModel;
-using Wpf.Ui.Controls;
 using Wpf.Ui.servoStudio.Services;
+using Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
 namespace Wpf.Ui.servoStudio.ViewModels;
 
@@ -14,30 +14,30 @@ public partial class HomeViewModel : ViewModel
     private readonly INavigationService _navigationService;
     private readonly PageUsageTracker _usageTracker;
 
+    public DeviceAddViewModel DeviceAdd { get; }
+
     [ObservableProperty]
     private ObservableCollection<QuickAccessItem> _quickAccessItems = [];
 
-    public HomeViewModel(INavigationService navigationService, PageUsageTracker usageTracker)
+    public HomeViewModel(INavigationService navigationService, PageUsageTracker usageTracker, DeviceAddViewModel deviceAdd)
     {
         _navigationService = navigationService;
         _usageTracker = usageTracker;
-
+        DeviceAdd = deviceAdd;
         RefreshQuickAccess();
     }
 
-    /// <summary>
-    /// Refreshes the quick access items based on current usage data.
-    /// </summary>
     public void RefreshQuickAccess()
     {
         List<QuickAccessItem> items = _usageTracker.GetTopPages(3);
         QuickAccessItems = new ObservableCollection<QuickAccessItem>(items);
     }
 
+    public override void OnNavigatedTo() => RefreshQuickAccess();
+
     [RelayCommand]
     private void NavigateTo(Type pageType)
     {
-        _usageTracker.RecordVisit(pageType);
         _ = _navigationService.Navigate(pageType);
     }
 }

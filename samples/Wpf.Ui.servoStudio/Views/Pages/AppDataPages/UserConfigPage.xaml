@@ -17,6 +17,7 @@
     mc:Ignorable="d">
 
     <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -130,9 +131,25 @@
                                 <TextBlock Style="{StaticResource FieldLabelStyle}" Text="停止位索引:" />
                                 <ui:NumberBox Width="80" Minimum="-1" Maximum="16" Value="{Binding ViewModel.StopBitIndex, Mode=TwoWay}" />
                             </WrapPanel>
-                            <WrapPanel>
+                            <WrapPanel Margin="0,0,0,8">
                                 <TextBlock Style="{StaticResource FieldLabelStyle}" Text="以太网设备:" />
                                 <TextBox Width="480" Text="{Binding ViewModel.EthernetDeviceName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </WrapPanel>
+                            <WrapPanel>
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Modbus 从机地址:" />
+                                <ui:NumberBox Width="100" Margin="0,0,16,0" Minimum="1" Maximum="247" Value="{Binding ViewModel.ModbusSlaveAddress, Mode=TwoWay}" />
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="CANopen 节点 ID:" />
+                                <ui:NumberBox Width="100" Margin="0,0,16,0" Minimum="1" Maximum="127" Value="{Binding ViewModel.CanopenNodeId, Mode=TwoWay}" />
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="CANopen 比特率索引:" />
+                                <ui:NumberBox Width="100" Minimum="0" Maximum="8" Value="{Binding ViewModel.CanopenBitrateIndex, Mode=TwoWay}" />
+                            </WrapPanel>
+                            <WrapPanel>
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="默认协议栈标签页 (0=EtherCAT, 1=CANopen, 2=Modbus):" />
+                                <ui:NumberBox Width="80" Margin="0,0,16,0" Minimum="0" Maximum="2" Value="{Binding ViewModel.DeviceAddTabIndex, Mode=TwoWay}" />
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="CAN 适配器类别:" />
+                                <TextBox Width="140" Margin="0,0,16,0" Text="{Binding ViewModel.CanAdapterKind, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="CanAdapterKind 枚举名称，如 PcanBasic / ControlCan / Slcan / Virtual 等" />
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="CAN 适配器标识符:" />
+                                <TextBox Width="240" Text="{Binding ViewModel.CanAdapterIdentifier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="设备路径或序列号，与添加设备页自动枚举一致" />
                             </WrapPanel>
                         </StackPanel>
                     </ui:Card>
@@ -242,10 +259,15 @@
                         </StackPanel>
                     </ui:Card>
 
-                    <!-- 固件 -->
-                    <ui:Card Margin="0,0,0,8" Padding="14">
+                    <!-- 固件（厂家专属） -->
+                    <ui:Card Margin="0,0,0,8" Padding="14"
+                             Visibility="{Binding ViewModel.IsFactoryUnlocked, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="固件 FoE 烧写" />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="固件 FoE 烧写" />
+                                <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontSize="11"
+                                           Foreground="#FF6A1B9A" Text="（厂家专属，导出时已加密）" />
+                            </StackPanel>
                             <WrapPanel Margin="0,0,0,8">
                                 <TextBlock Style="{StaticResource FieldLabelStyle}" Text="目标文件名:" />
                                 <TextBox Width="260" Margin="0,0,16,0" Text="{Binding ViewModel.FoeTargetFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -282,6 +304,121 @@
                                 <TextBlock Style="{StaticResource FieldLabelStyle}" Text="日志目录:" />
                                 <TextBox Width="520" Text="{Binding ViewModel.AppLogDirectory, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
                             </WrapPanel>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- 总线诊断 -->
+                    <ui:Card Margin="0,0,0,8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="总线诊断 (BusDiagnosticsPage)" />
+                            <WrapPanel>
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="采样间隔 (ms):" />
+                                <ui:NumberBox Width="120" Margin="0,0,20,0" Minimum="1" Maximum="60000" Value="{Binding ViewModel.BusDiagnosticsIntervalMs, Mode=TwoWay}" />
+                                <ui:ToggleSwitch
+                                    Content="探测 SDO 0x6041 (仅 EtherCAT)"
+                                    IsChecked="{Binding ViewModel.BusDiagnosticsProbeSdo, Mode=TwoWay}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- 波形窗 -->
+                    <ui:Card Margin="0,0,0,8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="波形窗 (DataViewPage)" />
+                            <WrapPanel>
+                                <ui:ToggleSwitch
+                                    Margin="0,0,20,0"
+                                    Content="使用深色主题"
+                                    IsChecked="{Binding ViewModel.DataViewIsDarkTheme, Mode=TwoWay}" />
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="图例字号 (pt):" />
+                                <ui:NumberBox Width="100" Minimum="8" Maximum="36" Value="{Binding ViewModel.DataViewLegendFontSize, Mode=TwoWay}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- 调试 -->
+                    <ui:Card Margin="0,0,0,8" Padding="14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="调试 / 开发" />
+                            <WrapPanel Margin="0,0,0,8">
+                                <ui:ToggleSwitch
+                                    Content="启用 Debug 模式（显示测试数据生成等控件）"
+                                    IsChecked="{Binding ViewModel.IsDebugMode, Mode=TwoWay}" />
+                            </WrapPanel>
+                            <WrapPanel>
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="测试数据目录:" />
+                                <TextBox Width="520" Text="{Binding ViewModel.DataSaveTestDataDirectory, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- 已禁用寄存器（与厂家页联动，厂家专属，锁定时隐藏） -->
+                    <ui:Card Margin="0,0,0,8" Padding="14"
+                             Visibility="{Binding ViewModel.IsFactoryUnlocked, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="已禁用寄存器（与厂家页联动）" />
+                                <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontSize="11"
+                                           Foreground="#FF6A1B9A" Text="（厂家专属，导出时已加密）" />
+                            </StackPanel>
+                            <TextBlock Margin="0,0,0,8" FontSize="11"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="下列寄存器与厂家页「禁用记忆」实时同步。仅以读方式呈现，修改请回到厂家页。" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" Text="EtherCAT" />
+                                    <Border MaxHeight="160" Padding="4"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                            BorderThickness="1" CornerRadius="4">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl ItemsSource="{Binding ViewModel.DisabledRegistersEtherCAT}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" Text="{Binding}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="4,0,4,0">
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" Text="CANopen" />
+                                    <Border MaxHeight="160" Padding="4"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                            BorderThickness="1" CornerRadius="4">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl ItemsSource="{Binding ViewModel.DisabledRegistersCANopen}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" Text="{Binding}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4" Text="Modbus" />
+                                    <Border MaxHeight="160" Padding="4"
+                                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                            BorderThickness="1" CornerRadius="4">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl ItemsSource="{Binding ViewModel.DisabledRegistersModbus}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock FontFamily="Consolas" FontSize="11" Text="{Binding}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
                         </StackPanel>
                     </ui:Card>
                 </StackPanel>

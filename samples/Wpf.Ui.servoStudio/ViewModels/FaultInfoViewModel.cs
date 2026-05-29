@@ -362,4 +362,77 @@ public partial class FaultInfoViewModel(
     }
 
     #endregion
+
+    #region H11 故障诊断
+
+    [ObservableProperty]
+    private int _powerOnCount;          // H11.00 上电次数
+
+    [ObservableProperty]
+    private int _totalRunTimeH;         // H11.01 累计运行时间 (h)
+
+    [ObservableProperty]
+    private int _faultSpeed;            // H11.02 最近故障转速 (rpm, 有符号)
+
+    [ObservableProperty]
+    private int _faultCurrent;          // H11.03 最近故障电流 (A)
+
+    [ObservableProperty]
+    private int _faultBusVoltage;       // H11.04 最近故障母线电压 (V)
+
+    [ObservableProperty]
+    private int _faultTemp;             // H11.05 最近故障温度 (°C)
+
+    [ObservableProperty]
+    private int _faultCtrlMode;         // H11.06 最近故障控制模式
+
+    [ObservableProperty]
+    private string _faultHistory3 = "—"; // H11.10
+
+    [ObservableProperty]
+    private string _faultHistory4 = "—"; // H11.11
+
+    [ObservableProperty]
+    private string _faultHistory5 = "—"; // H11.12
+
+    [ObservableProperty]
+    private string _h11Status = string.Empty;
+
+    [RelayCommand]
+    private void OnReadH11()
+    {
+        if (!deviceAddViewModel.IsAnyConnected || Axis is null)
+        {
+            H11Status = "未连接设备 Device not connected";
+            return;
+        }
+
+        var errs = new List<string>();
+        if (!HRegisterIO.ReadHReg(Master, Axis, "H11.00", v => PowerOnCount = v)) errs.Add("H11.00");
+        if (!HRegisterIO.ReadHReg(Master, Axis, "H11.01", v => TotalRunTimeH = v)) errs.Add("H11.01");
+        if (!HRegisterIO.ReadHRegSigned(Master, Axis, "H11.02", v => FaultSpeed = v)) errs.Add("H11.02");
+        if (!HRegisterIO.ReadHReg(Master, Axis, "H11.03", v => FaultCurrent = v)) errs.Add("H11.03");
+        if (!HRegisterIO.ReadHReg(Master, Axis, "H11.04", v => FaultBusVoltage = v)) errs.Add("H11.04");
+        if (!HRegisterIO.ReadHRegSigned(Master, Axis, "H11.05", v => FaultTemp = v)) errs.Add("H11.05");
+        if (!HRegisterIO.ReadHReg(Master, Axis, "H11.06", v => FaultCtrlMode = v)) errs.Add("H11.06");
+        if (!HRegisterIO.ReadHReg(Master, Axis, "H11.10", v => FaultHistory3 = v == 0 ? "—" : $"0x{v:X4}")) errs.Add("H11.10");
+        if (!HRegisterIO.ReadHReg(Master, Axis, "H11.11", v => FaultHistory4 = v == 0 ? "—" : $"0x{v:X4}")) errs.Add("H11.11");
+        if (!HRegisterIO.ReadHReg(Master, Axis, "H11.12", v => FaultHistory5 = v == 0 ? "—" : $"0x{v:X4}")) errs.Add("H11.12");
+        H11Status = errs.Count == 0 ? "读取完成 Read OK" : $"部分失败: {string.Join(';', errs)}";
+    }
+
+    [RelayCommand]
+    private void OnClearFaultHistory()
+    {
+        if (!deviceAddViewModel.IsAnyConnected || Axis is null)
+        {
+            H11Status = "未连接设备 Device not connected";
+            return;
+        }
+        var errs = new List<string>();
+        HRegisterIO.SafeWriteHReg(Master, Axis, "H11.20", 1, errs, "H11.20 故障记录清除");
+        H11Status = errs.Count == 0 ? "故障记录已清除 Cleared" : $"清除失败: {string.Join(';', errs)}";
+    }
+
+    #endregion
 }

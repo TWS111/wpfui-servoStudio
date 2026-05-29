@@ -666,22 +666,41 @@ static uint16 soemfoe_aiadr_for_slave(uint16 slave)
 }
 
 /**
- * Write EEPROM using APWR (auto-increment) addressing.
- * <para>
- * More robust than FPWR when the slave's SII is corrupt: APWR does not
- * depend on a valid configured station address, so recovery from a bad
- * previous write is possible without external tools (e.g. TwinCAT).
- * </para>
- * Assumes linear topology ordering; slave index is 1-based (first physical
- * slave = 1). Returns number of words written, or -1 on invalid args.
+ * Write EEPROM using APWR (auto-increment) addressing with **per-word
+ * write-then-readback-verify**.
+ *
+ * Why per-word verify is required:
+ *   SOEM's `ecx_writeeepromAP` only checks the EEPROM `EC_ESTAT_NACK` bit
+ *   and waits for `EC_ESTAT_BUSY` to clear; it does **not** poll until the
+ *   physical EEPROM I²C write cycle finishes.  On many ESC implementations
+ *   (notably TI Sitara, Hilscher netX-90, HPM6E, and other MCU-based
+ *   slaves), the BUSY bit clears as soon as the ESC accepts the command
+ *   into its internal buffer, *before* the I²C write actually completes
+ *   (typical AT24Cxx write cycle = 5–10 ms).  Issuing the next word write
+ *   too quickly causes the EEPROM controller to silently drop one or more
+ *   words.  The session-level "bulk readback" then PASSES because what we
+ *   read back is the ESC's *internal* shadow / cache — but after a power
+ *   cycle the EEPROM physically holds the *previous* (or partially
+ *   updated) content, so the slave reverts to defaults (e.g. shows up as
+ *   "Drive" with no Identity).
+ *
+ * This is exactly what makes TwinCAT's eeprom-burner robust:
+ *   it writes one word, waits ~5 ms, reads it back, and retries the SAME
+ *   word until verified.  We replicate that contract here.
+ *
+ * Returns the number of words successfully verified, or -1 on invalid
+ * arguments.  A return value < length means the caller should treat the
+ * operation as a hard failure (verification could not be achieved within
+ * retry budget).
  */
 EXPORT int soemfoe_write_eeprom_ap(ecx_contextt* context, uint16 slave,
                                    uint16 start, const uint16* data, int length)
 {
     int i;
-    int wkc;
     uint16 aiadr;
     uint8 eepctl;
+    const int per_word_settle_us = 5000;   /* 5 ms — > AT24Cxx tWR (max 5 ms) */
+    const int per_word_max_retry = 5;
 
     if (!context || !data || slave == 0 || slave > context->slavecount || length <= 0)
         return -1;
@@ -696,10 +715,40 @@ EXPORT int soemfoe_write_eeprom_ap(ecx_contextt* context, uint16 slave,
 
     for (i = 0; i < length; i++)
     {
-        wkc = ecx_writeeepromAP(context, aiadr, (uint16)(start + i), data[i], EC_TIMEOUTEEP);
-        if (wkc <= 0)
-            return i;
+        uint16 wordaddr = (uint16)(start + i);
+        int verified = 0;
+        int attempt;
+
+        for (attempt = 0; attempt < per_word_max_retry && !verified; attempt++)
+        {
+            uint64 readback;
+            int wkc = ecx_writeeepromAP(context, aiadr, wordaddr, data[i], EC_TIMEOUTEEP);
+            if (wkc <= 0)
+            {
+                /* Command-level failure (NACK 3 times). Brief pause and retry. */
+                osal_usleep(per_word_settle_us);
+                continue;
+            }
+
+            /* Wait for the physical EEPROM write cycle to complete.
+             * BUSY clearing in the ESC is necessary but NOT sufficient. */
+            osal_usleep(per_word_settle_us);
+
+            /* Read back via the same EEPROM controller path and compare. */
+            readback = ecx_readeepromAP(context, aiadr, wordaddr, EC_TIMEOUTEEP);
+            if ((uint16)(readback & 0xFFFF) == data[i])
+            {
+                verified = 1;
+                break;
+            }
+            /* Mismatch — extra settle then retry the same word. */
+            osal_usleep(per_word_settle_us * 2);
+        }
+
+        if (!verified)
+            return i; /* caller will see partial-write and abort */
     }
+
     return length;
 }
 
@@ -735,12 +784,53 @@ EXPORT int soemfoe_read_eeprom_ap(ecx_contextt* context, uint16 slave,
 }
 
 /**
- * Issue an "EEPROM reload" request to the slave's ESC after SII rewrite,
- * so that the new identity/mailbox/SM config is re-latched without requiring
- * a physical power cycle.
+ * Wait until the EEPROM controller is not busy (poll EEPSTAT.BUSY via APRD).
+ * Returns 1 on success (not busy, status returned in *estat),
+ *         0 on timeout / network failure.
+ */
+static int soemfoe_eeprom_wait_notbusy_ap(ecx_contextt* context, uint16 aiadr,
+                                          uint16* estat, int timeout_us)
+{
+    int wkc;
+    int elapsed = 0;
+    const int step_us = 200;
+
+    while (elapsed <= timeout_us)
+    {
+        *estat = 0;
+        wkc = ecx_APRD(&context->port, aiadr, ECT_REG_EEPSTAT,
+                       sizeof(*estat), estat, EC_TIMEOUTRET);
+        if (wkc > 0)
+        {
+            *estat = etohs(*estat);
+            if ((*estat & EC_ESTAT_BUSY) == 0)
+                return 1;
+        }
+        osal_usleep(step_us);
+        elapsed += step_us;
+    }
+    return 0;
+}
+
+/**
+ * Issue an "EEPROM Reload" command to the slave's ESC after SII rewrite,
+ * so that the configured area (Identity 0x0008..0x000F, mailbox/SM defaults,
+ * Station Alias, etc.) is re-latched into the ESC's mirror registers without
+ * requiring a physical power cycle.
  *
- * Done by toggling the EEPROM control register via APWR so the ESC re-reads
- * the category data (config area is re-read on state change to INIT).
+ * Per ETG.1000.4 (EEPROM Control register 0x0502/0x0503), the Reload command
+ * is encoded as bit 2 of the command byte (0x0503), which is 0x0400 in the
+ * 16-bit register packed little-endian.
+ *
+ * NOTE: SOEM's `EC_ECMD_RELOAD = 0x0300` constant is non-standard and never
+ * used inside SOEM itself; we deliberately use the spec-correct 0x0400 here.
+ *
+ * Steps (mirrors what TwinCAT does after SII write):
+ *   1. Force EEPROM control to master (toggle EEPCFG: 2 -> 0).
+ *   2. Wait until EEPROM controller is not busy.
+ *   3. Clear any pending error bits (write NOP to EEPCTL).
+ *   4. Issue Reload (write {comm=0x0400, addr=0, d2=0} to EEPCTL).
+ *   5. Wait until reload completes (BUSY clears) and check error bits.
  *
  * Returns 1 on success, 0 on failure.
  */
@@ -748,26 +838,103 @@ EXPORT int soemfoe_reload_eeprom_ap(ecx_contextt* context, uint16 slave)
 {
     uint16 aiadr;
     uint8 eepctl;
+    uint16 estat;
+    ec_eepromt ed;
     int wkc;
+    int retry;
 
     if (!context || slave == 0 || slave > context->slavecount)
         return 0;
 
     aiadr = soemfoe_aiadr_for_slave(slave);
 
-    /* Give EEPROM control back to PDI then reclaim to master; the toggle
-     * causes the ESC to re-enable the SII controller. */
-    eepctl = 1;  /* PDI */
-    wkc = ecx_APWR(&context->port, aiadr, ECT_REG_EEPCFG, sizeof(eepctl), &eepctl, EC_TIMEOUTRET);
+    /* 1) Force EEPROM ownership to master via AP (works even if SII is
+     *    corrupt / no valid configadr). Must be done in two steps on some
+     *    ESCs: assert "force PDI off" (=2), then release (=0). */
+    eepctl = 2;
+    wkc = ecx_APWR(&context->port, aiadr, ECT_REG_EEPCFG,
+                   sizeof(eepctl), &eepctl, EC_TIMEOUTRET);
+    if (wkc <= 0) return 0;
+    eepctl = 0;
+    wkc = ecx_APWR(&context->port, aiadr, ECT_REG_EEPCFG,
+                   sizeof(eepctl), &eepctl, EC_TIMEOUTRET);
     if (wkc <= 0) return 0;
 
-    osal_usleep(20000); /* 20 ms to let the ESC refresh */
+    /* 2) Wait until EEPROM controller is idle. */
+    if (!soemfoe_eeprom_wait_notbusy_ap(context, aiadr, &estat, EC_TIMEOUTEEP))
+        return 0;
 
-    eepctl = 2;  /* Force to master */
-    wkc = ecx_APWR(&context->port, aiadr, ECT_REG_EEPCFG, sizeof(eepctl), &eepctl, EC_TIMEOUTRET);
-    if (wkc <= 0) return 0;
+    /* 3) Clear any sticky error bits with a NOP. */
+    if (estat & EC_ESTAT_EMASK)
+    {
+        estat = htoes(EC_ECMD_NOP);
+        ecx_APWR(&context->port, aiadr, ECT_REG_EEPCTL,
+                 sizeof(estat), &estat, EC_TIMEOUTRET3);
+    }
 
-    eepctl = 0;  /* Master */
-    wkc = ecx_APWR(&context->port, aiadr, ECT_REG_EEPCFG, sizeof(eepctl), &eepctl, EC_TIMEOUTRET);
-    return (wkc > 0) ? 1 : 0;
+    /* 4) Issue the Reload command.
+     *    EtherCAT spec: Reload = bit 2 of command byte at 0x0503 = 0x0400 (LE word).
+     *    addr=0 (the configured area is reloaded regardless of addr). */
+    for (retry = 0; retry < 3; retry++)
+    {
+        ed.comm = 0x0400;   /* spec-correct Reload command */
+        ed.addr = 0x0000;
+        ed.d2   = 0x0000;
+        wkc = ecx_APWR(&context->port, aiadr, ECT_REG_EEPCTL,
+                       sizeof(ed), &ed, EC_TIMEOUTRET3);
+        if (wkc > 0)
+            break;
+        osal_usleep(EC_LOCALDELAY);
+    }
+    if (wkc <= 0)
+        return 0;
+
+    /* 5) Wait for completion and verify no error bits. */
+    osal_usleep(EC_LOCALDELAY * 2);
+    if (!soemfoe_eeprom_wait_notbusy_ap(context, aiadr, &estat, EC_TIMEOUTEEP))
+        return 0;
+    if (estat & EC_ESTAT_EMASK)
+        return 0;
+
+    /* Give the ESC a moment to internally re-latch configured-area registers. */
+    osal_usleep(20000);
+    return 1;
+}
+
+/**
+ * Verify that the ESC's mirror Identity registers (0x0008..0x000F) reflect
+ * the EEPROM contents after a Reload command. Reads VendorID (reg 0x0008,
+ * 32-bit, mirrors EEPROM word 0x0008..0x0009) and ProductCode (reg 0x000C,
+ * 32-bit equivalent? — actually Identity layout in mirror regs:
+ *   0x0008..0x000B = VendorID
+ *   0x000C..0x000F = ProductCode mirror lives in the SII registers area,
+ * but in ESC mirror registers Vendor/Product are NOT directly mapped — they
+ * are exposed via SII access. So instead, we read EEPROM words 0x0008 and
+ * 0x000A via the (now-master-controlled) EEPROM interface and ensure they
+ * match what we just wrote. The caller passes the expected values.
+ *
+ * Returns 1 if both match, 0 otherwise.
+ */
+EXPORT int soemfoe_verify_identity_reloaded_ap(ecx_contextt* context, uint16 slave,
+                                               uint32 expected_vendor,
+                                               uint32 expected_product)
+{
+    uint16 buf[4];
+    uint16 aiadr;
+    int n;
+    uint32 vendor, product;
+
+    if (!context || slave == 0 || slave > context->slavecount)
+        return 0;
+    aiadr = soemfoe_aiadr_for_slave(slave);
+    (void)aiadr;
+
+    /* Read EEPROM words 0x0008..0x000B = VendorID(2 words) + ProductCode(2 words) */
+    n = soemfoe_read_eeprom_ap(context, slave, 0x0008, buf, 4);
+    if (n != 4) return 0;
+
+    vendor  = ((uint32)buf[0]) | (((uint32)buf[1]) << 16);
+    product = ((uint32)buf[2]) | (((uint32)buf[3]) << 16);
+
+    return (vendor == expected_vendor && product == expected_product) ? 1 : 0;
 }

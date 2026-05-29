@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using Core.Net.EtherCAT;
 using Wpf.Ui.servoStudio.Core;
 using Wpf.Ui.servoStudio.Models;
+using Wpf.Ui.servoStudio.Services;
 using Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
 namespace Wpf.Ui.servoStudio.ViewModels.Motion;
@@ -146,9 +147,26 @@ public partial class MotionLimitViewModel(DeviceAddViewModel deviceAddViewModel)
         // 内部转矩限制
         "H07.09", // 正内部转矩限制
         "H07.10", // 负内部转矩限制
+        "H07.11", // 速度模式正向转矩限制
+        "H07.12", // 速度模式负向转矩限制
         // 位置环速度输出限幅
         "H08.06", // 位置环速度正向输出限幅
         "H08.07", // 位置环速度反向输出限幅
+        // 保护参数（H0A）
+        "H0A.00", // 超速保护阈值
+        "H0A.04", // 电机过载保护时间
+        "H0A.06", // 位置跟踪误差过大保护阈值
+        "H0A.10", // 驱动器过热保护温度
+        "H0A.11", // 驱动器欠压故障阈值
+        "H0A.12", // 驱动器过压故障阈值
+        // 软件位置限位 / 超限动作（H0F.00 ~ H0F.06）
+        "H0F.00", // 软件正限位使能
+        "H0F.01", // 软件正限位（圈数高字）
+        "H0F.02", // 软件正限位（单圈脉冲低字）
+        "H0F.03", // 软件负限位使能
+        "H0F.04", // 软件负限位（圈数高字）
+        "H0F.05", // 软件负限位（单圈脉冲低字）
+        "H0F.06", // 超限位处理方式
     };
 
     #endregion
@@ -179,6 +197,14 @@ public partial class MotionLimitViewModel(DeviceAddViewModel deviceAddViewModel)
     {
         _isInitialized = true;
         PopulateHLimitItems();
+        // 厂家页禁用变更 / 协议栈切换时联动刷新本页 H 寄存器列表
+        RegisterDisableService.Changed -= OnDisabledChanged;
+        RegisterDisableService.Changed += OnDisabledChanged;
+    }
+
+    private void OnDisabledChanged(object? sender, EventArgs e)
+    {
+        Application.Current?.Dispatcher.BeginInvoke(() => PopulateHLimitItems());
     }
 
     private void PopulateHLimitItems()
@@ -187,8 +213,10 @@ public partial class MotionLimitViewModel(DeviceAddViewModel deviceAddViewModel)
         foreach (string hIdx in LimitHIndices)
         {
             HRegisterEntry? entry = HVariables.FindByHIndex(hIdx);
-            if (entry != null)
-                HLimitItems.Add(HRegisterLimitItem.FromEntry(entry));
+            if (entry is null) continue;
+            // 当前活动协议栈下被禁用的 H 寄存器一律不在本页显示
+            if (RegisterDisableService.IsDisabledForActive(entry.SdoIndex, entry.SdoSubIndex)) continue;
+            HLimitItems.Add(HRegisterLimitItem.FromEntry(entry));
         }
     }
 

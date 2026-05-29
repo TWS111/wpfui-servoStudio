@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GX Servo Studio MSI Installer Project (WiX v7) -->
+<Project Sdk="WixToolset.Sdk/7.0.0">
+
+    <PropertyGroup>
+        <!-- 默认版本，由 build_installer.ps1 通过 /p:ProductVersion=x.x.x.x 覆盖 -->
+        <ProductVersion Condition="'$(ProductVersion)' == ''">0.2.10.19</ProductVersion>
+
+        <!-- 输出文件名 -->
+        <OutputName>GXServoStudio-$(ProductVersion)</OutputName>
+
+        <!-- 目标平台：x64 -->
+        <Platform>x64</Platform>
+        <Configurations>Release</Configurations>
+
+        <!-- 发布目录（dotnet publish 输出到此处，相对于本 .wixproj） -->
+        <PublishDirAbsolute Condition="'$(PublishDirAbsolute)' == ''">$(MSBuildProjectDirectory)\publish\</PublishDirAbsolute>
+
+        <!-- 项目源目录（用于获取应用图标） -->
+        <ProjectSourceAbsolute>$(MSBuildProjectDirectory)\..\samples\Wpf.Ui.servoStudio\</ProjectSourceAbsolute>
+    </PropertyGroup>
+
+    <!-- 将路径作为预处理变量传递给 .wxs 编译器 -->
+    <PropertyGroup>
+        <DefineConstants>PublishDir=$(PublishDirAbsolute);ProductVer=$(ProductVersion);ProjectDir=$(ProjectSourceAbsolute)</DefineConstants>
+    </PropertyGroup>
+
+    <!-- WiX 扩展引用 -->
+    <ItemGroup>
+        <PackageReference Include="WixToolset.UI.wixext" Version="7.0.0" />
+        <PackageReference Include="WixToolset.Util.wixext" Version="7.0.0" />
+    </ItemGroup>
+
+</Project>

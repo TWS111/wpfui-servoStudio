@@ -96,6 +96,14 @@
     <Folder Include="Views\Pages\AppDataPages\" />
   </ItemGroup>
 
+  <!-- CAN 厂家原生库与配套配置：保持 native\can\<vendor>\ 子目录结构拷贝到输出目录。
+       ZLG zlgcan 不只需要 DLL，还依赖 kerneldlls\dll_cfg.ini、*.xml、devices_property\ 等文件。 -->
+  <ItemGroup>
+    <None Include="native\can\**\*.*" CopyToOutputDirectory="PreserveNewest">
+      <Link>native\can\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+  </ItemGroup>
+
   <!-- OTA 打包工具: 每次生成时将 Models\ota_pack_tool 完整复制到输出目录，并清理临时文件 -->
   <Target Name="CopyOtaPackTool" AfterTargets="Build">
     <Exec Command="robocopy &quot;$(MSBuildProjectDirectory)\Models\ota_pack_tool&quot; &quot;$(OutputPath)ota_pack_tool&quot; /MIR /NJH /NJS /NP /NFL /NDL" IgnoreExitCode="true" />

@@ -25,6 +25,8 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Row 0: 标题 -->
@@ -68,6 +70,15 @@
                     Command="{Binding ViewModel.ClearCommand}"
                     Content="清空"
                     Icon="{ui:SymbolIcon Dismiss24}" />
+
+                <!-- 必要列校验开关：仅 Debug 模式下显示 -->
+                <ui:ToggleSwitch
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center"
+                    Content="必要列校验"
+                    IsChecked="{Binding ViewModel.EnforceRequiredColumns, Mode=TwoWay}"
+                    ToolTip="开启：要求文件含 Name/Value 等必要列，否则报错&#x0a;关闭：第一非空行作为列标题，缺失必要列时按每列一通道展开"
+                    Visibility="{Binding ViewModel.IsDebugMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                 <ui:Button
                     Margin="0,0,8,0"
@@ -148,6 +159,55 @@
                     VerticalAlignment="Center"
                     FontSize="12"
                     Text="{Binding ViewModel.TotalSamples, StringFormat=样本:{0}}" />
+
+                <!-- 在线接收（Debug + Modbus 连接时显示） -->
+                <Border
+                    Width="1"
+                    Height="20"
+                    Margin="0,0,12,0"
+                    Background="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    Visibility="{Binding ViewModel.IsLiveReceiveSupported, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ui:ToggleSwitch
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center"
+                    Content="在线接收"
+                    IsChecked="{Binding ViewModel.IsLiveReceiveEnabled, Mode=TwoWay}"
+                    ToolTip="Modbus 静默模式：主机停止下发&#x0a;实时解析从机帧 '&gt;name:val,name:val\r\n'"
+                    Visibility="{Binding ViewModel.IsLiveReceiveSupported, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock
+                    Margin="0,0,4,0"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Text="显示容量"
+                    Visibility="{Binding ViewModel.IsLiveReceiveSupported, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ui:NumberBox
+                    Width="100"
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center"
+                    ClearButtonEnabled="False"
+                    LargeChange="500"
+                    MaxDecimalPlaces="0"
+                    Maximum="1000000"
+                    Minimum="10"
+                    SmallChange="100"
+                    SpinButtonPlacementMode="Compact"
+                    Value="{Binding ViewModel.LiveDisplayCapacity, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                    Visibility="{Binding ViewModel.IsLiveReceiveSupported, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock
+                    Margin="0,0,4,0"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Text="超容"
+                    Visibility="{Binding ViewModel.IsLiveReceiveSupported, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ComboBox
+                    Width="110"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    SelectedIndex="{Binding ViewModel.LiveOverflowModeIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    Visibility="{Binding ViewModel.IsLiveReceiveSupported, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ComboBoxItem Content="滚动" />
+                    <ComboBoxItem Content="扫屏" />
+                </ComboBox>
             </WrapPanel>
         </Border>
 
@@ -213,24 +273,50 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <!-- 通道色块 + CHx 标签 -->
-                                            <Border
+                                            <!-- 通道色块 + CHx 标签 + ON/OFF 指示（竖排在色块下方） -->
+                                            <StackPanel
                                                 Grid.Column="0"
-                                                MinWidth="34"
                                                 Margin="0,0,8,0"
-                                                Padding="4,1"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding ColorHex}"
-                                                CornerRadius="3">
-                                                <TextBlock
+                                                VerticalAlignment="Center">
+                                                <Border
+                                                    MinWidth="34"
+                                                    Padding="4,1"
                                                     HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
+                                                    Background="{Binding ColorHex}"
+                                                    CornerRadius="3">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        FontFamily="Consolas"
+                                                        FontSize="11"
+                                                        FontWeight="Bold"
+                                                        Foreground="Black"
+                                                        Text="{Binding ChannelLabel}" />
+                                                </Border>
+                                                <TextBlock
+                                                    Margin="0,2,0,0"
+                                                    HorizontalAlignment="Center"
                                                     FontFamily="Consolas"
-                                                    FontSize="11"
-                                                    FontWeight="Bold"
-                                                    Foreground="Black"
-                                                    Text="{Binding ChannelLabel}" />
-                                            </Border>
+                                                    FontSize="10"
+                                                    FontWeight="Bold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="OFF" />
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsVisible}" Value="True">
+                                                                    <Setter Property="Text" Value="ON" />
+                                                                    <Setter Property="Foreground" Value="{Binding ColorHex}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsPlottable}" Value="False">
+                                                                    <Setter Property="Text" Value="{Binding DataType}" />
+                                                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
                                             <!-- 变量名 / 分类 -->
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                 <TextBlock
@@ -244,40 +330,14 @@
                                                     Text="{Binding Group}"
                                                     TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
-                                            <!-- ON/OFF 指示 + 样本数 -->
-                                            <StackPanel
+                                            <!-- 样本数 -->
+                                            <TextBlock
                                                 Grid.Column="2"
                                                 VerticalAlignment="Center"
-                                                Orientation="Vertical">
-                                                <TextBlock
-                                                    HorizontalAlignment="Right"
-                                                    FontFamily="Consolas"
-                                                    FontSize="10"
-                                                    FontWeight="Bold">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="OFF" />
-                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsVisible}" Value="True">
-                                                                    <Setter Property="Text" Value="ON" />
-                                                                    <Setter Property="Foreground" Value="{Binding ColorHex}" />
-                                                                </DataTrigger>
-                                                                <!-- 非数值（字符串等）类型显示数据类型而非 ON/OFF -->
-                                                                <DataTrigger Binding="{Binding IsPlottable}" Value="False">
-                                                                    <Setter Property="Text" Value="{Binding DataType}" />
-                                                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                                <TextBlock
-                                                    HorizontalAlignment="Right"
-                                                    FontSize="10"
-                                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                                    Text="{Binding Count, StringFormat='N {0}'}" />
-                                            </StackPanel>
+                                                FontFamily="Consolas"
+                                                FontSize="10"
+                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                Text="{Binding Count, StringFormat='N {0}'}" />
                                         </Grid>
                                     </Button>
                                 </DataTemplate>
@@ -304,9 +364,148 @@
             </Border>
         </Grid>
 
-        <!-- Row 3: 状态栏 -->
+        <!-- Row 3: 横轴范围 + 自动缩放 -->
         <Border
             Grid.Row="3"
+            Margin="0,8,0,0"
+            Padding="10,6"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            CornerRadius="6">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Text="X 范围:" />
+                <ui:NumberBox
+                    x:Name="XMinBox"
+                    Width="120"
+                    Margin="0,0,4,0"
+                    VerticalAlignment="Center"
+                    ClearButtonEnabled="False"
+                    KeyDown="OnXRangeKeyDown"
+                    LargeChange="100"
+                    MaxDecimalPlaces="0"
+                    SmallChange="1"
+                    SpinButtonPlacementMode="Inline"
+                    ToolTip="X 轴左端（仅整数；按回车应用）"
+                    ValueChanged="OnXRangeValueChanged" />
+                <TextBlock
+                    Margin="0,0,4,0"
+                    VerticalAlignment="Center"
+                    Text="—" />
+                <ui:NumberBox
+                    x:Name="XMaxBox"
+                    Width="120"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Center"
+                    ClearButtonEnabled="False"
+                    KeyDown="OnXRangeKeyDown"
+                    LargeChange="100"
+                    MaxDecimalPlaces="0"
+                    SmallChange="1"
+                    SpinButtonPlacementMode="Inline"
+                    ToolTip="X 轴右端（仅整数；按回车应用）"
+                    ValueChanged="OnXRangeValueChanged" />
+                <ui:Button
+                    Margin="0,0,12,0"
+                    Padding="8,4"
+                    Click="OnApplyXRange"
+                    Content="应用" />
+
+                <Border
+                    Width="1"
+                    Height="20"
+                    Margin="0,0,12,0"
+                    Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                <ui:Button
+                    Margin="0,0,6,0"
+                    Padding="8,4"
+                    Click="OnAutoX"
+                    Content="自动 X"
+                    Icon="{ui:SymbolIcon AutoFitWidth24}"
+                    ToolTip="自动缩放横轴" />
+                <ui:Button
+                    Margin="0,0,6,0"
+                    Padding="8,4"
+                    Click="OnAutoY"
+                    Content="自动 Y"
+                    Icon="{ui:SymbolIcon AutoFitHeight24}"
+                    ToolTip="自动缩放纵轴" />
+                <ui:Button
+                    Margin="0,0,6,0"
+                    Padding="8,4"
+                    Appearance="Secondary"
+                    Click="OnAutoAll"
+                    Content="全自动"
+                    Icon="{ui:SymbolIcon FullScreenMaximize24}"
+                    ToolTip="全自动缩放（X+Y）" />
+
+                <Border
+                    Width="1"
+                    Height="20"
+                    Margin="0,0,12,0"
+                    Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                <ui:Button
+                    x:Name="LivePauseButton"
+                    Margin="0,0,6,0"
+                    Padding="8,4"
+                    Appearance="Secondary"
+                    Click="OnPauseLiveRefresh"
+                    Content="暂停刷新"
+                    Icon="{ui:SymbolIcon Pause24}"
+                    ToolTip="暂停波形窗实时刷新（数据接收不受影响）" />
+                <ui:Button
+                    x:Name="LiveResumeButton"
+                    Margin="0,0,6,0"
+                    Padding="8,4"
+                    Appearance="Secondary"
+                    Click="OnResumeLiveRefresh"
+                    Content="恢复刷新"
+                    Icon="{ui:SymbolIcon Play24}"
+                    ToolTip="恢复波形窗实时刷新"
+                    Visibility="Collapsed" />
+            </WrapPanel>
+        </Border>
+
+        <!-- Row 4: 设备虚拟示波器配置 (H0D.20 ~ H0D.23) -->
+        <Border
+            Grid.Row="4"
+            Margin="0,8,0,0"
+            Padding="10,6"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            CornerRadius="6">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="设备虚拟示波器:" />
+                <TextBlock Margin="0,0,4,0" VerticalAlignment="Center" FontSize="12" Text="通道1(H0D.20)" />
+                <ui:NumberBox Width="70" Margin="0,0,8,0" Minimum="0" Maximum="31" ClearButtonEnabled="False" SpinButtonPlacementMode="Compact"
+                              Value="{Binding ViewModel.OscCh1Signal, UpdateSourceTrigger=LostFocus}" />
+                <TextBlock Margin="0,0,4,0" VerticalAlignment="Center" FontSize="12" Text="通道2(H0D.21)" />
+                <ui:NumberBox Width="70" Margin="0,0,8,0" Minimum="0" Maximum="31" ClearButtonEnabled="False" SpinButtonPlacementMode="Compact"
+                              Value="{Binding ViewModel.OscCh2Signal, UpdateSourceTrigger=LostFocus}" />
+                <TextBlock Margin="0,0,4,0" VerticalAlignment="Center" FontSize="12" Text="触发模式(H0D.22)" />
+                <ComboBox Width="120" Margin="0,0,8,0" SelectedIndex="{Binding ViewModel.OscTriggerMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <ComboBoxItem Content="0 - 手动" />
+                    <ComboBoxItem Content="1 - 上升沿" />
+                    <ComboBoxItem Content="2 - 下降沿" />
+                    <ComboBoxItem Content="3 - 双边沿" />
+                </ComboBox>
+                <TextBlock Margin="0,0,4,0" VerticalAlignment="Center" FontSize="12" Text="采样周期(H0D.23)" />
+                <ui:NumberBox Width="80" Margin="0,0,4,0" Minimum="1" Maximum="1000" ClearButtonEnabled="False" SpinButtonPlacementMode="Compact"
+                              Value="{Binding ViewModel.OscSamplePeriodMs, UpdateSourceTrigger=LostFocus}" />
+                <TextBlock Margin="0,0,12,0" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="ms" />
+                <ui:Button Margin="0,0,6,0" Padding="8,4" Content="读取" Command="{Binding ViewModel.ReadOscConfigCommand}" />
+                <ui:Button Margin="0,0,12,0" Padding="8,4" Appearance="Primary" Content="下发" Command="{Binding ViewModel.WriteOscConfigCommand}" />
+                <TextBlock VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="{Binding ViewModel.OscConfigStatus}" />
+            </WrapPanel>
+        </Border>
+
+        <!-- Row 5: 状态栏 -->
+        <Border
+            Grid.Row="5"
             Margin="0,8,0,0"
             Padding="12,6"
             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"

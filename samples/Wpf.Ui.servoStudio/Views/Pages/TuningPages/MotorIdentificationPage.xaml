@@ -1,0 +1,392 @@
+<Page
+    x:Class="Wpf.Ui.servoStudio.Views.Pages.TuningPages.MotorIdentificationPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.TuningPages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="在线电机参数辨识"
+    d:DataContext="{d:DesignInstance local:MotorIdentificationPage, IsDesignTimeCreatable=False}"
+    d:DesignHeight="900"
+    d:DesignWidth="1180"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    ScrollViewer.CanContentScroll="False"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
+        <Style x:Key="MetricTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style x:Key="MetricValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="18,8,18,14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="在线电机参数辨识" />
+                    <TextBlock
+                        Margin="12,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="自学习 / 试注入 / 结果写回" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="10" Height="10" Margin="0,0,6,0" VerticalAlignment="Center">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="Gray" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ViewModel.IsConnected}" Value="True">
+                                        <Setter Property="Fill" Value="#4CAF50" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock
+                        FontSize="12"
+                        VerticalAlignment="Center"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{Binding ViewModel.ConnectionInfo}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Operator switch and actions -->
+            <ui:Card Grid.Row="1" Margin="0,0,0,8" Padding="12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <WrapPanel Grid.Column="0" VerticalAlignment="Center">
+                        <ui:ToggleSwitch
+                            Margin="0,0,22,0"
+                            Content="在线辨识总开关"
+                            IsChecked="{Binding ViewModel.IsFeatureEnabled, Mode=TwoWay}" />
+                        <CheckBox
+                            Margin="0,0,18,0"
+                            VerticalAlignment="Center"
+                            Content="确认电机固定、负载安全、急停可用"
+                            IsChecked="{Binding ViewModel.SafetyConfirmed, Mode=TwoWay}" />
+                        <TextBlock Style="{StaticResource FieldLabelStyle}" Text="当前阶段:" />
+                        <TextBlock Margin="0,0,18,0" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding ViewModel.StageText}" />
+                        <TextBlock Style="{StaticResource FieldLabelStyle}" Text="耗时:" />
+                        <TextBlock VerticalAlignment="Center" Text="{Binding ViewModel.ElapsedText}" />
+                    </WrapPanel>
+                    <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                        <ui:Button
+                            MinWidth="110"
+                            Margin="0,0,8,0"
+                            Appearance="Primary"
+                            Command="{Binding ViewModel.StartCommand}"
+                            Content="开始辨识"
+                            Icon="{ui:SymbolIcon Play24}" />
+                        <ui:Button
+                            MinWidth="92"
+                            Margin="0,0,8,0"
+                            Appearance="Caution"
+                            Command="{Binding ViewModel.AbortCommand}"
+                            Content="中止"
+                            Icon="{ui:SymbolIcon Stop24}" />
+                        <ui:Button
+                            MinWidth="124"
+                            Appearance="Success"
+                            Command="{Binding ViewModel.ApplyToDriveCommand}"
+                            Content="结果写回"
+                            Icon="{ui:SymbolIcon ArrowUpload24}" />
+                    </WrapPanel>
+                </Grid>
+            </ui:Card>
+
+            <!-- Settings + progress + result -->
+            <Grid Grid.Row="2" Margin="0,0,0,8" IsEnabled="{Binding ViewModel.IsFeatureEnabled}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="360" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ui:Card Grid.Column="0" Padding="14">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="辨识配置" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource FieldLabelStyle}" Text="模式" />
+                            <ComboBox
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Margin="0,0,0,8"
+                                ItemsSource="{Binding ViewModel.ModeOptions}"
+                                SelectedIndex="{Binding ViewModel.ModeIndex, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource FieldLabelStyle}" Text="注入电流 (%)" />
+                            <ui:NumberBox
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="0,0,0,8"
+                                Minimum="5"
+                                Maximum="100"
+                                Value="{Binding ViewModel.InjectCurrentPercent, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource FieldLabelStyle}" Text="最大转速 (rpm)" />
+                            <ui:NumberBox
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Margin="0,0,0,8"
+                                Minimum="0"
+                                Maximum="6000"
+                                Value="{Binding ViewModel.MaxTestSpeedRpm, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource FieldLabelStyle}" Text="持续时间 (s)" />
+                            <ui:NumberBox
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                Margin="0,0,0,8"
+                                Minimum="1"
+                                Maximum="120"
+                                Value="{Binding ViewModel.DurationSec, Mode=TwoWay}" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource FieldLabelStyle}" Text="历史上限" />
+                            <ui:NumberBox
+                                Grid.Row="4"
+                                Grid.Column="1"
+                                Margin="0,0,0,8"
+                                Minimum="1"
+                                Maximum="200"
+                                Value="{Binding ViewModel.HistoryLimit, Mode=TwoWay}" />
+
+                            <ui:ToggleSwitch
+                                Grid.Row="5"
+                                Grid.ColumnSpan="2"
+                                Margin="0,2,0,8"
+                                Content="启用自适应抗噪滤波"
+                                IsChecked="{Binding ViewModel.NoiseFilterEnabled, Mode=TwoWay}" />
+
+                            <ui:ToggleSwitch
+                                Grid.Row="6"
+                                Grid.ColumnSpan="2"
+                                Content="辨识完成后自动写回"
+                                IsChecked="{Binding ViewModel.AutoApplyResult, Mode=TwoWay}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <ui:Card Grid.Row="0" Padding="14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="运行状态" />
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ProgressBar Grid.Column="0" Height="18" Minimum="0" Maximum="100" Value="{Binding ViewModel.Progress}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Margin="12,0,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Text="{Binding ViewModel.Progress, StringFormat={}{0:F0}%}" />
+                            </Grid>
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="{Binding ViewModel.StatusText}"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </ui:Card>
+
+                    <ui:Card Grid.Row="2" Padding="14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="最新结果" />
+                            <UniformGrid Columns="4">
+                                <StackPanel Margin="0,0,14,10">
+                                    <TextBlock Style="{StaticResource MetricTitleStyle}" Text="Rs / Ω" />
+                                    <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViewModel.LatestResult.StatorResistance, StringFormat={}{0:F4}}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,14,10">
+                                    <TextBlock Style="{StaticResource MetricTitleStyle}" Text="Ld / mH" />
+                                    <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViewModel.LatestResult.DAxisInductance, StringFormat={}{0:F3}}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,14,10">
+                                    <TextBlock Style="{StaticResource MetricTitleStyle}" Text="Lq / mH" />
+                                    <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViewModel.LatestResult.QAxisInductance, StringFormat={}{0:F3}}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,14,10">
+                                    <TextBlock Style="{StaticResource MetricTitleStyle}" Text="Ke / V/krpm" />
+                                    <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViewModel.LatestResult.BackEmfConstant, StringFormat={}{0:F2}}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,14,0">
+                                    <TextBlock Style="{StaticResource MetricTitleStyle}" Text="磁链 / Wb" />
+                                    <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViewModel.LatestResult.FluxLinkage, StringFormat={}{0:F5}}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,14,0">
+                                    <TextBlock Style="{StaticResource MetricTitleStyle}" Text="J / kg·cm²" />
+                                    <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViewModel.LatestResult.Inertia, StringFormat={}{0:F3}}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,14,0">
+                                    <TextBlock Style="{StaticResource MetricTitleStyle}" Text="B / N·m·s/rad" />
+                                    <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViewModel.LatestResult.ViscousFriction, StringFormat={}{0:F5}}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,14,0">
+                                    <TextBlock Style="{StaticResource MetricTitleStyle}" Text="极对数" />
+                                    <TextBlock Style="{StaticResource MetricValueStyle}" Text="{Binding ViewModel.LatestResult.PolePairs}" />
+                                </StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </ui:Card>
+                </Grid>
+            </Grid>
+
+            <!-- History and logs -->
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ui:Card Grid.Column="0" Padding="12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource SectionHeaderStyle}" Text="历史记录" />
+                            <WrapPanel Grid.Column="1">
+                                <ui:Button
+                                    MinWidth="86"
+                                    Margin="0,0,8,0"
+                                    Command="{Binding ViewModel.ExportCsvCommand}"
+                                    Content="导出 CSV"
+                                    Icon="{ui:SymbolIcon ArrowDownload24}" />
+                                <ui:Button
+                                    MinWidth="70"
+                                    Appearance="Caution"
+                                    Command="{Binding ViewModel.ClearHistoryCommand}"
+                                    Content="清空"
+                                    Icon="{ui:SymbolIcon Delete24}" />
+                            </WrapPanel>
+                        </Grid>
+                        <DataGrid
+                            Grid.Row="1"
+                            MinHeight="260"
+                            AutoGenerateColumns="False"
+                            CanUserAddRows="False"
+                            HeadersVisibility="Column"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding ViewModel.History}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Header="时间" Width="80" />
+                                <DataGridTextColumn Binding="{Binding Mode}" Header="模式" Width="110" />
+                                <DataGridTextColumn Binding="{Binding StatorResistance, StringFormat=F4}" Header="Rs" Width="70" />
+                                <DataGridTextColumn Binding="{Binding DAxisInductance, StringFormat=F3}" Header="Ld" Width="70" />
+                                <DataGridTextColumn Binding="{Binding QAxisInductance, StringFormat=F3}" Header="Lq" Width="70" />
+                                <DataGridTextColumn Binding="{Binding BackEmfConstant, StringFormat=F2}" Header="Ke" Width="70" />
+                                <DataGridTextColumn Binding="{Binding Inertia, StringFormat=F3}" Header="J" Width="70" />
+                                <DataGridCheckBoxColumn Binding="{Binding IsValid}" Header="OK" Width="48" />
+                                <DataGridTextColumn Binding="{Binding Note}" Header="备注" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </ui:Card>
+
+                <ui:Card Grid.Column="2" Padding="12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource SectionHeaderStyle}" Text="过程日志" />
+                            <ui:Button
+                                Grid.Column="1"
+                                MinWidth="70"
+                                Appearance="Caution"
+                                Command="{Binding ViewModel.ClearLogsCommand}"
+                                Content="清空"
+                                Icon="{ui:SymbolIcon Delete24}" />
+                        </Grid>
+                        <DataGrid
+                            Grid.Row="1"
+                            MinHeight="260"
+                            AutoGenerateColumns="False"
+                            CanUserAddRows="False"
+                            HeadersVisibility="Column"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding ViewModel.Logs}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Binding="{Binding Time}" Header="时间" Width="95" />
+                                <DataGridTextColumn Binding="{Binding StageText}" Header="阶段" Width="105" />
+                                <DataGridTextColumn Binding="{Binding Severity}" Header="级别" Width="70" />
+                                <DataGridTextColumn Binding="{Binding Message}" Header="消息" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </ui:Card>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</Page>

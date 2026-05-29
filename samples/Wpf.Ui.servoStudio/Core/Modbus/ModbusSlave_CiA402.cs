@@ -17,6 +17,7 @@ namespace Core.Modbus.CiA402;
 ///   <item><description>控制字   = H03.50（CommAddress 2003-33h）— 与典型汇川约定一致</description></item>
 ///   <item><description>状态字   = H0B.30（CommAddress 200B-1Fh）— 镜像 0x6041</description></item>
 ///   <item><description>操作模式 = H02.00（CommAddress 2002-01h）</description></item>
+///   <item><description>原点偏移 = H05.36（CommAddress 2005-25h）— 镜像 0x607C (Home Offset)</description></item>
 /// </list>
 /// 厂家差异较大，可通过设置 <see cref="ControlWordAddress"/> / <see cref="StatusWordAddress"/> / <see cref="OperationModeAddress"/>
 /// 重写为厂家手册标注的 H 寄存器（CiA 索引/子索引形式）。
@@ -29,7 +30,9 @@ public class ModbusSlave_CiA402 : IServoAxis
     {
         _master = master ?? throw new ArgumentNullException(nameof(master));
         if (slaveAddr is < 1 or > 247)
+        {
             throw new ArgumentOutOfRangeException(nameof(slaveAddr), "Modbus 从机地址应在 1~247 之间");
+        }
 
         SlaveAddr = slaveAddr;
 
@@ -38,6 +41,7 @@ public class ModbusSlave_CiA402 : IServoAxis
         ControlWordAddress = (0x2003, 0x33);
         StatusWordAddress = (0x200B, 0x1F);
         OperationModeAddress = (0x2002, 0x01);
+        HomeOffsetAddress = (0x2005, 0x25); // CiA 0x607C 镜像 = H05.36
     }
 
     /// <summary>Modbus 从机地址（轴地址）。</summary>
@@ -66,6 +70,9 @@ public class ModbusSlave_CiA402 : IServoAxis
 
     /// <summary>操作模式 (CiA 0x6060) 的厂家镜像地址，默认 H02.00。</summary>
     public (ushort Index, byte SubIndex) OperationModeAddress { get; set; }
+
+    /// <summary>原点偏移 (CiA 0x607C) 的厂家镜像地址，默认 H05.36（2005-25h）。</summary>
+    public (ushort Index, byte SubIndex) HomeOffsetAddress { get; set; }
 
     /// <summary>
     /// 探测从机身份：读取 H01.00 软件版本、H01.02 驱动器编号、H00.00 电机编号。<br/>
@@ -127,6 +134,21 @@ public class ModbusSlave_CiA402 : IServoAxis
         return _master.TryWriteSDO(SlaveAddr, OperationModeAddress.Index, OperationModeAddress.SubIndex, raw);
     }
 
+    /// <summary>读取原点偏移（CiA402 0x607C 镜像 = H05.36，按 16 位有符号语义）。</summary>
+    public bool TryReadHomeOffset(out int value)
+    {
+        bool ok = _master.TryReadSDO(SlaveAddr, HomeOffsetAddress.Index, HomeOffsetAddress.SubIndex, out ushort raw);
+        value = unchecked((short)raw);
+        return ok;
+    }
+
+    /// <summary>写入原点偏移（CiA402 0x607C 镜像 = H05.36，按 16 位有符号语义）。</summary>
+    public bool TryWriteHomeOffset(int value)
+    {
+        ushort raw = unchecked((ushort)(short)value);
+        return _master.TryWriteSDO(SlaveAddr, HomeOffsetAddress.Index, HomeOffsetAddress.SubIndex, raw);
+    }
+
     // ────────────────── 通过 H 索引快捷读写 ──────────────────
 
     /// <summary>按 HVariables 中的 HIndex（如 "H08.00"）读取 16 位寄存器值。</summary>
@@ -134,7 +156,11 @@ public class ModbusSlave_CiA402 : IServoAxis
     {
         value = 0;
         HRegisterEntry? entry = HVariables.FindByHIndex(hIndex);
-        if (entry == null) return false;
+        if (entry == null)
+        {
+            return false;
+        }
+
         return _master.TryReadSDO(SlaveAddr, entry.SdoIndex, entry.SdoSubIndex, out value);
     }
 
@@ -142,8 +168,16 @@ public class ModbusSlave_CiA402 : IServoAxis
     public bool TryWriteByHIndex(string hIndex, ushort value)
     {
         HRegisterEntry? entry = HVariables.FindByHIndex(hIndex);
-        if (entry == null) return false;
-        if (entry.IsReadOnly) return false;
+        if (entry == null)
+        {
+            return false;
+        }
+
+        if (entry.IsReadOnly)
+        {
+            return false;
+        }
+
         return _master.TryWriteSDO(SlaveAddr, entry.SdoIndex, entry.SdoSubIndex, value);
     }
 }

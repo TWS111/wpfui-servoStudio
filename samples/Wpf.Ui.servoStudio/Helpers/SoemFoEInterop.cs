@@ -37,7 +37,7 @@ public static class SoemFoEInterop
     #region P/Invoke — 标准 SOEM 函数
 
     [DllImport(DllName, EntryPoint = "ecx_init", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
-    private static extern int ecx_init(IntPtr context, [MarshalAs(UnmanagedType.LPWStr)] string ifname);
+    private static extern int ecx_init(IntPtr context, [MarshalAs(UnmanagedType.LPStr)] string ifname);
 
     [DllImport(DllName, EntryPoint = "ecx_config_init", CallingConvention = CallingConvention.Cdecl)]
     private static extern int ecx_config_init(IntPtr context, byte usetable);
@@ -52,10 +52,10 @@ public static class SoemFoEInterop
     private static extern int ecx_writestate(IntPtr context, ushort slave);
 
     [DllImport(DllName, EntryPoint = "ecx_FOEwrite", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
-    private static extern int ecx_FOEwrite(IntPtr context, ushort slave, [MarshalAs(UnmanagedType.LPWStr)] string filename, uint password, int psize, byte[] p, int timeout);
+    private static extern int ecx_FOEwrite(IntPtr context, ushort slave, [MarshalAs(UnmanagedType.LPStr)] string filename, uint password, int psize, byte[] p, int timeout);
 
     [DllImport(DllName, EntryPoint = "ecx_FOEread", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
-    private static extern int ecx_FOEread(IntPtr context, ushort slave, [MarshalAs(UnmanagedType.LPWStr)] string filename, uint password, ref int psize, byte[] p, int timeout);
+    private static extern int ecx_FOEread(IntPtr context, ushort slave, [MarshalAs(UnmanagedType.LPStr)] string filename, uint password, ref int psize, byte[] p, int timeout);
 
     // SOEM 上下文分配/释放 — 使用 ecx_context 完整结构
     [DllImport(DllName, EntryPoint = "soemfoe_alloc_context", CallingConvention = CallingConvention.Cdecl)]
@@ -106,6 +106,10 @@ public static class SoemFoEInterop
     [DllImport(DllName, EntryPoint = "soemfoe_reload_eeprom_ap", CallingConvention = CallingConvention.Cdecl)]
     private static extern int soemfoe_reload_eeprom_ap(IntPtr context, ushort slave);
 
+    // 校验 Reload 后 EEPROM 中的 Identity (Vendor/Product) 是否与预期一致 (诊断用)
+    [DllImport(DllName, EntryPoint = "soemfoe_verify_identity_reloaded_ap", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int soemfoe_verify_identity_reloaded_ap(IntPtr context, ushort slave, uint expectedVendor, uint expectedProduct);
+
     // 弹出最后一条错误并返回可读字符串
     [DllImport(DllName, EntryPoint = "soemfoe_pop_error_string", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr soemfoe_pop_error_string(IntPtr context);
@@ -113,9 +117,9 @@ public static class SoemFoEInterop
     // 完整 FoE 写入 — 单次调用，匹配 SOEM firm_update.c 标准流程
     [DllImport(DllName, EntryPoint = "soemfoe_foe_write_full", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
     private static extern int soemfoe_foe_write_full(
-        [MarshalAs(UnmanagedType.LPWStr)] string ifname,
+        [MarshalAs(UnmanagedType.LPStr)] string ifname,
         ushort slave,
-        [MarshalAs(UnmanagedType.LPWStr)] string filename,
+        [MarshalAs(UnmanagedType.LPStr)] string filename,
         uint password,
         byte[] data,
         int datasize,
@@ -381,8 +385,11 @@ public static class SoemFoEInterop
             }
 
             // ── 2) APWR 分批写入 ──
-            onLog?.Invoke($"开始写入 EEPROM: {wordCount} words ({siiData.Length} 字节, APWR 模式)...");
-            const int batchSize = 64;
+            // 底层 soemfoe_write_eeprom_ap 已升级为"逐字写入 + 等待 EEPROM 物理写周期
+            // (~5ms) + 立即单字回读校验 + 自动重试"，所以这里的 batchSize 仅用于进度
+            // 报告粒度，不影响数据安全。约 6 ms/word × 338 word ≈ 2 秒。
+            onLog?.Invoke($"开始写入 EEPROM: {wordCount} words ({siiData.Length} 字节, APWR 模式, 逐字校验)...");
+            const int batchSize = 16;
             int totalWritten = 0;
             string? writeError = null;
 
@@ -439,7 +446,16 @@ public static class SoemFoEInterop
                 }
             }
 
-            // ── 4) 回读校验 ──
+            // ── 4) 最终批量回读校验 ──
+            //
+            // 底层 soemfoe_write_eeprom_ap 已经对每个 word 完成"写后等待 5ms +
+            // 单字回读校验 + 失败重试"，到这里所有 word 在 ESC EEPROM 控制器视角
+            // 下已确认写入。本步骤是"第二道防线"——再做一次整体回读对照，并对极
+            // 少数仍不一致的 word 进行额外的逐字重写重试。
+            //
+            // 让 EEPROM 在最后一次写入后完全落盘 (典型 AT24Cxx tWR ≤ 5ms，留余量)。
+            Thread.Sleep(100);
+
             onLog?.Invoke("正在回读校验 EEPROM...");
             ushort[] verify = new ushort[wordCount];
             int verifyRead = soemfoe_read_eeprom_ap(ctx, slave, 0, verify, wordCount);
@@ -449,15 +465,59 @@ public static class SoemFoEInterop
             }
             else
             {
-                int mismatchIdx = -1;
+                List<int> mismatches = new();
                 for (int i = 0; i < wordCount; i++)
                 {
-                    if (verify[i] != words[i]) { mismatchIdx = i; break; }
+                    if (verify[i] != words[i])
+                        mismatches.Add(i);
                 }
 
-                if (mismatchIdx >= 0)
+                const int maxRetryRounds = 3;
+                int retryRound = 0;
+                while (mismatches.Count > 0 && retryRound < maxRetryRounds)
                 {
-                    string verifyErr = $"EEPROM 回读校验失败：word 0x{mismatchIdx:X4} 期望 0x{words[mismatchIdx]:X4} 实际 0x{verify[mismatchIdx]:X4}";
+                    retryRound++;
+                    onLog?.Invoke($"⚠ 检测到 {mismatches.Count} 个 word 校验失败，逐字重写 (第 {retryRound}/{maxRetryRounds} 轮)");
+                    if (mismatches.Count <= 8)
+                    {
+                        foreach (int idx in mismatches)
+                            onLog?.Invoke($"   word 0x{idx:X4}: 期望 0x{words[idx]:X4} 实际 0x{verify[idx]:X4}");
+                    }
+
+                    List<int> stillBad = new();
+                    foreach (int idx in mismatches)
+                    {
+                        ushort[] one = new ushort[] { words[idx] };
+                        // 底层已包含 per-word 重试与延时，此处只需再调用一次。
+                        int w = soemfoe_write_eeprom_ap(ctx, slave, (ushort)idx, one, 1);
+                        if (w != 1)
+                        {
+                            stillBad.Add(idx);
+                            continue;
+                        }
+
+                        Thread.Sleep(10);
+                        ushort[] back = new ushort[1];
+                        int r = soemfoe_read_eeprom_ap(ctx, slave, (ushort)idx, back, 1);
+                        if (r != 1 || back[0] != words[idx])
+                        {
+                            stillBad.Add(idx);
+                            verify[idx] = (r == 1) ? back[0] : verify[idx];
+                        }
+                        else
+                        {
+                            verify[idx] = back[0];
+                        }
+                    }
+
+                    mismatches = stillBad;
+                }
+
+                if (mismatches.Count > 0)
+                {
+                    int firstBad = mismatches[0];
+                    string verifyErr = $"EEPROM 回读校验失败：word 0x{firstBad:X4} 期望 0x{words[firstBad]:X4} 实际 0x{verify[firstBad]:X4}"
+                        + (mismatches.Count > 1 ? $" (共 {mismatches.Count} 字异常，已重试 {maxRetryRounds} 轮)" : $" (已重试 {maxRetryRounds} 轮)");
                     onLog?.Invoke($"✗ {verifyErr}");
 
                     if (backupOk)
@@ -477,23 +537,63 @@ public static class SoemFoEInterop
                     return new EepromResult(false, totalWritten, verifyErr, RolledBack: false);
                 }
 
-                onLog?.Invoke("✓ EEPROM 回读校验通过");
+                if (retryRound > 0)
+                    onLog?.Invoke($"✓ EEPROM 回读校验通过 (经过 {retryRound} 轮单字重试)");
+                else
+                    onLog?.Invoke("✓ EEPROM 回读校验通过");
             }
 
-            // ── 5) 让 ESC 重新加载 ──
+            // ── 5) 触发 ESC 重新加载 SII 配置区 ──
+            //
+            // ★ 关键步骤：仅把 EEPROM 字节写对是不够的。
+            //   ESC 内部的镜像寄存器 (Identity 0x0008..0x000F、Station Alias、
+            //   邮箱/SM 默认值等) 只在以下情况会从 EEPROM 重读：
+            //     a) 物理上电；
+            //     b) 主站显式发送 EEPROM "Reload" 命令到寄存器 0x0502 (bit 2)。
+            //   不做 Reload，主站重连时仍读到旧 Identity → 不匹配 → 卡 INIT、
+            //   长时间重试，与 TwinCAT 烧录后正常表现差异巨大。
+            //   soemfoe_reload_eeprom_ap 已实现为符合 ETG.1000.4 的 Reload 命令。
+            //
+            // 提取期望 Identity 用于回读校验 (EEPROM word 0x0008..0x000B)
+            uint expectedVendor = 0;
+            uint expectedProduct = 0;
+            if (wordCount >= 12)
+            {
+                expectedVendor = (uint)words[0x08] | ((uint)words[0x09] << 16);
+                expectedProduct = (uint)words[0x0A] | ((uint)words[0x0B] << 16);
+            }
+
+            bool reloadOk = false;
             try
             {
-                if (soemfoe_reload_eeprom_ap(ctx, slave) > 0)
-                    onLog?.Invoke("✓ 已触发 ESC EEPROM 重新加载");
+                reloadOk = soemfoe_reload_eeprom_ap(ctx, slave) > 0;
+                if (reloadOk)
+                    onLog?.Invoke("✓ 已发送 EEPROM Reload 命令 (ESC 配置区刷新)");
                 else
-                    onLog?.Invoke("⚠ ESC EEPROM 重新加载返回失败，下次上电会自动加载");
+                    onLog?.Invoke("⚠ EEPROM Reload 命令返回失败 — 从站可能需要重新上电才能生效");
             }
             catch (Exception ex)
             {
-                onLog?.Invoke($"⚠ 触发 ESC 重新加载时异常: {ex.Message} (可忽略)");
+                onLog?.Invoke($"⚠ 触发 ESC Reload 时异常: {ex.Message}");
             }
 
-            onLog?.Invoke($"✓ EEPROM 写入成功 ({totalWritten} words)");
+            // 校验 Reload 后从 EEPROM 读出的 Identity 与写入数据一致 (这能确认 EEPROM
+            // 现在归 master 控制且数据稳定；ESC 镜像寄存器是否同步刷新需主站重扫描验证)
+            if (reloadOk && expectedVendor != 0 && wordCount >= 12)
+            {
+                try
+                {
+                    bool idOk = soemfoe_verify_identity_reloaded_ap(ctx, slave, expectedVendor, expectedProduct) > 0;
+                    if (idOk)
+                        onLog?.Invoke($"✓ Identity 校验通过 (Vendor=0x{expectedVendor:X8} Product=0x{expectedProduct:X8})");
+                    else
+                        onLog?.Invoke("⚠ Reload 后 Identity 回读不一致 — 可能需要重新上电");
+                }
+                catch { /* 诊断步骤失败不视为致命 */ }
+            }
+
+            onLog?.Invoke($"✓ EEPROM 写入成功 ({totalWritten} words)"
+                + (reloadOk ? "" : "\n⚠ 建议手动给从站断电重启以使新 SII 生效"));
             return new EepromResult(true, totalWritten, null);
         }
         catch (Exception ex)

@@ -188,6 +188,62 @@
                 <TextBlock Text="{Binding ViewModel.OperationStatusText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
             </Border>
 
+            <!-- ═══════ H11 故障诊断 ═══════ -->
+            <ui:Card Margin="0,12,0,0" Padding="14">
+                <StackPanel>
+                    <DockPanel LastChildFill="True" Margin="0,0,0,8">
+                        <TextBlock DockPanel.Dock="Left" FontSize="16" FontWeight="SemiBold" Text="H11 故障诊断 / Fault Diagnostics"/>
+                        <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right" Orientation="Horizontal">
+                            <ui:Button Content="读取 Read" Command="{Binding ViewModel.ReadH11Command}" Margin="0,0,8,0" MinWidth="100"/>
+                            <ui:Button Content="清除全部历史 Clear All" Command="{Binding ViewModel.ClearFaultHistoryCommand}" Appearance="Caution" MinWidth="160"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.00 上电次数:"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.PowerOnCount}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="3" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.01 累计运行 (h):"/>
+                        <TextBlock Grid.Row="0" Grid.Column="4" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.TotalRunTimeH}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="6" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.06 控制模式:"/>
+                        <TextBlock Grid.Row="0" Grid.Column="7" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.FaultCtrlMode}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.02 故障转速 (rpm):"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.FaultSpeed}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="3" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.03 故障电流 (A):"/>
+                        <TextBlock Grid.Row="1" Grid.Column="4" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.FaultCurrent}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="6" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.04 故障母线 (V):"/>
+                        <TextBlock Grid.Row="1" Grid.Column="7" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.FaultBusVoltage}"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.05 故障温度 (°C):"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.FaultTemp}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="3" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.10 历史故障 3:"/>
+                        <TextBlock Grid.Row="2" Grid.Column="4" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.FaultHistory3}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="6" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.11 历史故障 4:"/>
+                        <TextBlock Grid.Row="2" Grid.Column="7" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.FaultHistory4}"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4,8,4" VerticalAlignment="Center" Text="H11.12 历史故障 5:"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,4,0,4" VerticalAlignment="Center" FontFamily="Consolas" Text="{Binding ViewModel.FaultHistory5}"/>
+                    </Grid>
+                    <TextBlock Margin="0,8,0,0" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{Binding ViewModel.H11Status}"/>
+                </StackPanel>
+            </ui:Card>
+
         </StackPanel>
     </ScrollViewer>
 </Page>

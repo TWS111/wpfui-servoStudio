@@ -13,12 +13,14 @@
     WindowStartupLocation="CenterScreen"
     WindowStyle="None">
 
-    <Border x:Name="RootBorder"
-            Background="#F5F5FA"
-            CornerRadius="16"
-            ClipToBounds="True"
-            SnapsToDevicePixels="True"
-            UseLayoutRounding="True">
+    <Border
+        x:Name="RootBorder"
+        Margin="0"
+        Background="#F5F5FA"
+        CornerRadius="16"
+        ClipToBounds="True"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
         <Border.Effect>
             <DropShadowEffect
                 BlurRadius="24"
@@ -28,15 +30,15 @@
                 Color="#000000" />
         </Border.Effect>
 
-        <Grid Margin="48,36">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+            <Grid Margin="48,36">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
             <!--  Icon + Title  -->
             <StackPanel
@@ -44,8 +46,8 @@
                 HorizontalAlignment="Center"
                 Orientation="Horizontal">
                 <Image
-                    Width="52"
-                    Height="52"
+                    Width="100"
+                    Height="100"
                     Margin="0,0,14,0"
                     RenderOptions.BitmapScalingMode="HighQuality"
                     Source="pack://application:,,,/Assets/applicationIcon-256.png" />
@@ -58,7 +60,7 @@
                     <TextBlock
                         x:Name="SubtitleText"
                         FontSize="11"
-                        Text="EtherCAT Servo Drive Tool" />
+                        Text="Servo Drive with EtherCAT/CANopen/Modbus" />
                 </StackPanel>
             </StackPanel>
 
@@ -102,7 +104,7 @@
                 Margin="0,4,0,0"
                 HorizontalAlignment="Center"
                 FontSize="10"
-                Text="© 2026 ServoStudio" />
-        </Grid>
+                Text="© 2026 GX Renewable co.,ltd." />
+            </Grid>
     </Border>
 </Window>

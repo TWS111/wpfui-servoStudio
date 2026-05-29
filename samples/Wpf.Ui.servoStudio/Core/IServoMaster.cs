@@ -5,6 +5,7 @@
 
 using System;
 using Core.Net.EtherCAT;
+using Wpf.Ui.servoStudio.Services;
 
 namespace Wpf.Ui.servoStudio.Core;
 
@@ -53,7 +54,15 @@ public sealed class EtherCATServoMasterAdapter(EtherCATMaster master) : IServoMa
         => _master.TryReadSDO(slaveAddr, index, subIndex, out value);
 
     public bool TryWriteSDO<T>(int slaveAddr, ushort index, byte subIndex, T value) where T : struct
-        => _master.TryWriteSDO(slaveAddr, index, subIndex, value);
+    {
+        // 厂家页禁用记忆：禁用后所有页面写入均拒绝
+        if (RegisterDisableService.IsDisabled(ProtocolStack.EtherCAT, index, subIndex))
+        {
+            return false;
+        }
+
+        return _master.TryWriteSDO(slaveAddr, index, subIndex, value);
+    }
 
     public T ReadSDO<T>(int slaveAddr, int index, int subIndex) where T : struct
         => _master.ReadSDO<T>(slaveAddr, index, subIndex);

@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.AppDataPages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:scottplot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     Title="PidAdjustPage"
     d:DataContext="{d:DesignInstance local:PidAdjustPage, IsDesignTimeCreatable=False}"
@@ -36,13 +37,17 @@
         </ResourceDictionary>
     </Page.Resources>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="18,8,18,12">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />  <!-- 0: 标题 + 连接状态 -->
+            <RowDefinition Height="Auto" />  <!-- 1: 操作按钮 -->
+            <RowDefinition Height="Auto" />  <!-- 2: 波形工具栏 + 通道选择 -->
+            <RowDefinition Height="280" MinHeight="180" />  <!-- 3: 波形图 -->
+            <RowDefinition Height="8" />     <!-- 4: 间距 -->
+            <RowDefinition Height="Auto" />  <!-- 5: 速度环参数标题 (原 Row 2) -->
+            <RowDefinition Height="Auto" />  <!-- 6: PID 滑块阵列 (原 Row 3) -->
+            <RowDefinition Height="Auto" />  <!-- 7: 状态栏 (原 Row 4) -->
         </Grid.RowDefinitions>
 
         <!-- Row 0: 标题及连接状态 -->
@@ -106,12 +111,88 @@
             </WrapPanel>
         </ui:Card>
 
-        <!-- Row 2: 分组标题（速度） -->
-        <TextBlock Grid.Row="2" Margin="0,0,0,4" FontSize="15" FontWeight="SemiBold" Text="速度环参数 (H08.00 ~ H08.05)" />
+        <!-- Row 2: 波形工具栏 + 通道选择 -->
+        <Border Grid.Row="2" Margin="0,0,0,4" Padding="8,6"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="6">
+            <WrapPanel VerticalAlignment="Center">
+                <!-- 主题切换 -->
+                <ui:Button Margin="0,0,4,0" Padding="8,4"
+                           Click="OnToggleWaveTheme"
+                           Content="深/浅" Icon="{ui:SymbolIcon DarkTheme24}"
+                           ToolTip="切换波形图深色 / 浅色背景" />
+                <ui:Button MinWidth="0" Margin="0,0,2,0" Padding="6,4"
+                           Click="OnWaveLegendFontDec" Content="A-" ToolTip="减小图例字号" />
+                <ui:Button MinWidth="0" Margin="0,0,8,0" Padding="6,4"
+                           Click="OnWaveLegendFontInc" Content="A+" ToolTip="增大图例字号" />
 
-        <!-- Row 3: Slider 阵列 -->
-        <Grid Grid.Row="3">
+                <Border Width="1" Height="20" Margin="0,0,8,0"
+                        Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                <!-- 自动缩放 -->
+                <ui:Button Margin="0,0,4,0" Padding="8,4"
+                           Click="OnWaveAutoAll" Content="全自动"
+                           Icon="{ui:SymbolIcon FullScreenMaximize24}"
+                           ToolTip="全自动缩放（X+Y）" />
+                <ui:Button Margin="0,0,8,0" Padding="8,4"
+                           Click="OnWaveClear"
+                           Content="清除" Icon="{ui:SymbolIcon Dismiss24}"
+                           ToolTip="清除波形缓冲" />
+
+                <Border Width="1" Height="20" Margin="0,0,8,0"
+                        Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                <!-- 通道选择：位置 -->
+                <TextBlock Margin="0,0,4,0" VerticalAlignment="Center" FontSize="12" Text="通道：" />
+                <CheckBox x:Name="ChkTargetPos" Margin="0,0,8,0" VerticalAlignment="Center"
+                          Content="目标位置" IsChecked="False"
+                          Checked="OnChannelChecked" Unchecked="OnChannelChecked" />
+                <CheckBox x:Name="ChkActualPos" Margin="0,0,12,0" VerticalAlignment="Center"
+                          Content="实际位置" IsChecked="False"
+                          Checked="OnChannelChecked" Unchecked="OnChannelChecked" />
+
+                <Border Width="1" Height="20" Margin="0,0,12,0"
+                        Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                <!-- 速度 -->
+                <CheckBox x:Name="ChkTargetVel" Margin="0,0,8,0" VerticalAlignment="Center"
+                          Content="目标速度" IsChecked="True"
+                          Checked="OnChannelChecked" Unchecked="OnChannelChecked" />
+                <CheckBox x:Name="ChkActualVel" Margin="0,0,12,0" VerticalAlignment="Center"
+                          Content="实际速度" IsChecked="True"
+                          Checked="OnChannelChecked" Unchecked="OnChannelChecked" />
+
+                <Border Width="1" Height="20" Margin="0,0,12,0"
+                        Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                <!-- 转矩 -->
+                <CheckBox x:Name="ChkTargetTrq" Margin="0,0,8,0" VerticalAlignment="Center"
+                          Content="目标转矩" IsChecked="False"
+                          Checked="OnChannelChecked" Unchecked="OnChannelChecked" />
+                <CheckBox x:Name="ChkActualTrq" Margin="0,0,0,0" VerticalAlignment="Center"
+                          Content="实际转矩" IsChecked="False"
+                          Checked="OnChannelChecked" Unchecked="OnChannelChecked" />
+            </WrapPanel>
+        </Border>
+
+        <!-- Row 3: 波形图 -->
+        <Border Grid.Row="3" Margin="0,0,0,0"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1" CornerRadius="6">
+            <scottplot:WpfPlot x:Name="WavePlot" />
+        </Border>
+
+        <!-- Row 5: 分组标题（速度） -->
+        <TextBlock Grid.Row="5" Margin="0,0,0,4" FontSize="15" FontWeight="SemiBold" Text="速度环参数 (H08.00 ~ H08.05)" />
+
+        <!-- Row 6: Slider 阵列 -->
+        <Grid Grid.Row="6">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -122,7 +203,7 @@
                 <UniformGrid Columns="4" HorizontalAlignment="Stretch">
 
                     <!-- 速度 Kp -->
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0800Visibility}">
                         <TextBlock Style="{StaticResource ParamHeader}" Text="速度Kp" />
                         <TextBlock Style="{StaticResource ParamSub}" Text="H08.00 / 2008-01h" />
                         <Grid HorizontalAlignment="Center">
@@ -157,7 +238,7 @@
                     </StackPanel>
 
                     <!-- 速度 Ki -->
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0801Visibility}">
                         <TextBlock Style="{StaticResource ParamHeader}" Text="速度Ki" />
                         <TextBlock Style="{StaticResource ParamSub}" Text="H08.01 / 2008-02h" />
                         <Grid HorizontalAlignment="Center">
@@ -192,7 +273,7 @@
                     </StackPanel>
 
                     <!-- 速度增量 -->
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0804Visibility}">
                         <TextBlock Style="{StaticResource ParamHeader}" Text="速度增量" />
                         <TextBlock Style="{StaticResource ParamSub}" Text="H08.04 / 2008-05h" />
                         <Grid HorizontalAlignment="Center">
@@ -227,7 +308,7 @@
                     </StackPanel>
 
                     <!-- 速度减量 -->
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0805Visibility}">
                         <TextBlock Style="{StaticResource ParamHeader}" Text="速度减量" />
                         <TextBlock Style="{StaticResource ParamSub}" Text="H08.05 / 2008-06h" />
                         <Grid HorizontalAlignment="Center">
@@ -269,7 +350,7 @@
                 <UniformGrid Columns="4" HorizontalAlignment="Stretch">
 
                     <!-- 位置 Kp -->
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0802Visibility}">
                         <TextBlock Style="{StaticResource ParamHeader}" Text="位置Kp" />
                         <TextBlock Style="{StaticResource ParamSub}" Text="H08.02 / 2008-03h" />
                         <Grid HorizontalAlignment="Center">
@@ -304,7 +385,7 @@
                     </StackPanel>
 
                     <!-- 位置 Kd -->
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0803Visibility}">
                         <TextBlock Style="{StaticResource ParamHeader}" Text="位置Kd" />
                         <TextBlock Style="{StaticResource ParamSub}" Text="H08.03 / 2008-04h" />
                         <Grid HorizontalAlignment="Center">
@@ -339,7 +420,7 @@
                     </StackPanel>
 
                     <!-- 正向限幅 -->
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0806Visibility}">
                         <TextBlock Style="{StaticResource ParamHeader}" Text="正向限幅" />
                         <TextBlock Style="{StaticResource ParamSub}" Text="H08.06 / 2008-07h" />
                         <Grid HorizontalAlignment="Center">
@@ -374,7 +455,7 @@
                     </StackPanel>
 
                     <!-- 反向限幅 -->
-                    <StackPanel HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0807Visibility}">
                         <TextBlock Style="{StaticResource ParamHeader}" Text="反向限幅" />
                         <TextBlock Style="{StaticResource ParamSub}" Text="H08.07 / 2008-08h" />
                         <Grid HorizontalAlignment="Center">
@@ -409,14 +490,83 @@
                     </StackPanel>
                 </UniformGrid>
             </ui:Card>
+
+            <!-- 第二增益组 (H08.08 ~ H08.11) -->
+            <TextBlock Grid.Row="3" Margin="0,8,0,4" FontSize="15" FontWeight="SemiBold" Text="第二增益组 (H08.08 ~ H08.11)" />
+            <ui:Card Grid.Row="4" Margin="0,0,0,0" Padding="12">
+                <UniformGrid Columns="4" HorizontalAlignment="Stretch">
+                    <StackPanel Margin="6,0" HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0808Visibility}">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="速度Kp2" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.08 / 2008-09h" />
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.SpeedKp2, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                    <StackPanel Margin="6,0" HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0809Visibility}">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="速度Ki2" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.09 / 2008-0Ah" />
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.SpeedKi2, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                    <StackPanel Margin="6,0" HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0810Visibility}">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="位置Kp2" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.10 / 2008-0Bh" />
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.PositionKp2, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                    <StackPanel Margin="6,0" HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0811Visibility}">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="位置Kd2" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.11 / 2008-0Ch" />
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.PositionKd2, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                </UniformGrid>
+            </ui:Card>
+
+            <!-- 增益切换 (H08.12 ~ H08.15) -->
+            <TextBlock Grid.Row="5" Margin="0,8,0,4" FontSize="15" FontWeight="SemiBold" Text="增益切换条件 (H08.12 ~ H08.15)" />
+            <ui:Card Grid.Row="6" Margin="0,0,0,0" Padding="12">
+                <UniformGrid Columns="4" HorizontalAlignment="Stretch">
+                    <StackPanel Margin="6,0" HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0812Visibility}">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="切换模式" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.12 / 2008-0Dh" />
+                        <ComboBox Width="180"
+                                  SelectedIndex="{Binding ViewModel.GainSwitchMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                            <ComboBoxItem Content="0 - 固定第一增益" />
+                            <ComboBoxItem Content="1 - 外部 DI 切换" />
+                            <ComboBoxItem Content="2 - 速度阈值切换" />
+                            <ComboBoxItem Content="3 - 位置误差阈值切换" />
+                            <ComboBoxItem Content="4 - 综合条件切换" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Margin="6,0" HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0813Visibility}">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="切换延迟 (ms)" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.13 / 2008-0Eh" />
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="1000"
+                                      Value="{Binding ViewModel.GainSwitchDelayMs, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                    <StackPanel Margin="6,0" HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0814Visibility}">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="速度阈值 (rpm)" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.14 / 2008-0Fh" />
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="3000"
+                                      Value="{Binding ViewModel.GainSwitchSpeedThreshold, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                    <StackPanel Margin="6,0" HorizontalAlignment="Center" Visibility="{Binding ViewModel.H0815Visibility}">
+                        <TextBlock Style="{StaticResource ParamHeader}" Text="位置误差阈值" />
+                        <TextBlock Style="{StaticResource ParamSub}" Text="H08.15 / 2008-10h" />
+                        <ui:NumberBox Width="180" Minimum="0" Maximum="65535"
+                                      Value="{Binding ViewModel.GainSwitchPosErrThreshold, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                    </StackPanel>
+                </UniformGrid>
+            </ui:Card>
         </Grid>
 
-        <!-- Row 4: 状态栏 -->
-        <ui:Card Grid.Row="4" Margin="0,8,0,0" Padding="10">
+        <!-- Row 7: 状态栏 -->
+        <ui:Card Grid.Row="7" Margin="0,8,0,0" Padding="10">
             <TextBlock
                 FontSize="12"
                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{Binding ViewModel.StatusText}" />
         </ui:Card>
     </Grid>
+    </ScrollViewer>
 </Page>

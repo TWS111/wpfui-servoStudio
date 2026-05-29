@@ -438,6 +438,7 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
         if (!_isInitialized)
         {
             _isInitialized = true;
+            DeviceAddViewModel.CommLost += OnCommLost;
         }
 
         StartRefreshTimer();
@@ -446,6 +447,38 @@ public partial class ControlViewModel(DeviceAddViewModel deviceAddViewModel) : V
     public override void OnNavigatedFrom()
     {
         StopRefreshTimer();
+    }
+
+    /// <summary>
+    /// 通信丢失时执行软件急停：写控制字 QuickStop（Bit2=0），并停止刷新定时器。
+    /// 在 UI 线程上执行，确保 ObservableProperty 更新安全。
+    /// </summary>
+    private void OnCommLost(object? sender, CommLostEventArgs e)
+    {
+        _ = System.Windows.Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            var master = deviceAddViewModel.ActiveServoMaster;
+            var axis = deviceAddViewModel.ActiveAxis;
+
+            ConnectionInfo = $"通信丢失！{e.Protocol} 连续 {e.ConsecutiveFailures} 次未应答，已执行软件急停";
+            IsConnected = false;
+
+            if (master is null || axis is null)
+            {
+                return;
+            }
+
+            // 写控制字：清除 Bit2（QuickStop），触发驱动器快速停止
+            try
+            {
+                ushort qsWord = (ushort)(ControlWordRaw & ~(1 << 2));
+                master.TryWriteSDO<ushort>(axis.SlaveAddr, 0x6040, 0x00, qsWord);
+            }
+            catch
+            {
+                // 通信已丢失，写入失败是预期的，忽略异常
+            }
+        });
     }
 
     #endregion

@@ -24,7 +24,9 @@ public class CanOpenSlave_CiA402 : IServoAxis
     {
         _master = master ?? throw new ArgumentNullException(nameof(master));
         if (nodeId is < 1 or > 127)
+        {
             throw new ArgumentOutOfRangeException(nameof(nodeId), "CANopen nodeId 应在 1~127 之间");
+        }
 
         SlaveAddr = nodeId;
 
@@ -111,7 +113,11 @@ public class CanOpenSlave_CiA402 : IServoAxis
         b[2] = (byte)((raw >> 16) & 0xFF);
         b[3] = (byte)((raw >> 24) & 0xFF);
         int len = 0;
-        while (len < 4 && b[len] >= 0x20 && b[len] < 0x7F) len++;
+        while (len < 4 && b[len] >= 0x20 && b[len] < 0x7F)
+        {
+            len++;
+        }
+
         return len == 0 ? string.Empty : System.Text.Encoding.ASCII.GetString(b[..len]);
     }
 
@@ -144,7 +150,11 @@ public class CanOpenSlave_CiA402 : IServoAxis
     {
         value = 0;
         HRegisterEntry? entry = HVariables.FindByHIndex(hIndex);
-        if (entry == null) return false;
+        if (entry == null)
+        {
+            return false;
+        }
+
         return _master.TryReadSDO(SlaveAddr, entry.SdoIndex, entry.SdoSubIndex, out value);
     }
 
@@ -152,8 +162,16 @@ public class CanOpenSlave_CiA402 : IServoAxis
     public bool TryWriteByHIndex(string hIndex, ushort value)
     {
         HRegisterEntry? entry = HVariables.FindByHIndex(hIndex);
-        if (entry == null) return false;
-        if (entry.IsReadOnly) return false;
+        if (entry == null)
+        {
+            return false;
+        }
+
+        if (entry.IsReadOnly)
+        {
+            return false;
+        }
+
         return _master.TryWriteSDO(SlaveAddr, entry.SdoIndex, entry.SdoSubIndex, value);
     }
 }

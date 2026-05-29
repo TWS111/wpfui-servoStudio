@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    GX Servo Studio 安装包定义
+    UpgradeCode: A8C3D5E7-F2B4-4A61-9D83-C1E5F7B29A0D  == 版本间升级唯一标识，禁止更改
+    预处理变量（由 .wixproj 注入）：
+        $(var.PublishDir)   == dotnet publish 输出目录（含末尾反斜杠）
+        $(var.ProductVer)   == 版本号，如 0.2.10.19
+        $(var.ProjectDir)   == 项目源目录（用于获取 applicationIcon.ico）
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+    <!-- ==================== Package 主定义 ==================== -->
+    <Package
+        Name="GX Servo Studio"
+        Manufacturer="GX Automation"
+        Version="$(var.ProductVer)"
+        UpgradeCode="{A8C3D5E7-F2B4-4A61-9D83-C1E5F7B29A0D}"
+        Scope="perMachine">
+
+        <SummaryInformation Description="GX Servo Studio 伺服驱动器调试配置工具" />
+
+        <!-- 主要升级策略：阻止降级，新版本静默替换旧版本 -->
+        <MajorUpgrade
+            Schedule="afterInstallInitialize"
+            DowngradeErrorMessage="已安装更新版本的 [ProductName]，无法降级安装。" />
+
+        <!-- 嵌入 CAB 压缩，减少安装文件数量 -->
+        <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+        <!-- 应用图标（来自项目源目录） -->
+        <Icon Id="AppIcon.ico" SourceFile="$(var.ProjectDir)applicationIcon.ico" />
+        <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+
+        <!-- 在"程序和功能"中显示的帮助链接（可按需修改） -->
+        <Property Id="ARPHELPLINK" Value="https://github.com/your-org/ServoStudio" />
+
+        <!-- 主功能组 -->
+        <Feature Id="MainFeature" Title="GX Servo Studio" Level="1">
+            <ComponentGroupRef Id="AppFiles" />
+            <ComponentRef Id="ShortcutDesktop" />
+            <ComponentRef Id="ShortcutStartMenu" />
+        </Feature>
+
+        <!-- 安装界面：允许用户选择安装目录 -->
+        <ui:WixUI Id="WixUI_InstallDir" />
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+        <WixVariable Id="WixUILicenseRtf" Value="$(sys.SOURCEFILEDIR)LICENSE.rtf" />
+
+    </Package>
+
+    <!-- ==================== 目录结构 ==================== -->
+    <!--
+        WiX v4+ 中内置目录（TARGETDIR、ProgramFiles64Folder、DesktopFolder 等）
+        须通过 StandardDirectory 元素声明，无需显式指定 TARGETDIR。
+    -->
+    <Fragment>
+
+        <!-- C:\Program Files\GX Automation\GX Servo Studio\ -->
+        <StandardDirectory Id="ProgramFiles64Folder">
+            <Directory Id="ManufacturerDir" Name="GX Automation">
+                <Directory Id="INSTALLFOLDER" Name="GX Servo Studio" />
+            </Directory>
+        </StandardDirectory>
+
+        <!-- 开始菜单：C:\ProgramData\Microsoft\Windows\Start Menu\Programs\GX Servo Studio\ -->
+        <StandardDirectory Id="ProgramMenuFolder">
+            <Directory Id="StartMenuDir" Name="GX Servo Studio" />
+        </StandardDirectory>
+
+    </Fragment>
+
+    <!-- ==================== 应用文件（自动收集发布目录所有文件） ==================== -->
+    <!--
+        <Files> 元素递归收集 $(var.PublishDir) 下所有文件（包含子目录），
+        自动为每个文件生成独立 Component，保留 native\、runtimes\ 等子目录结构。
+        包含内容：
+          - servoStudio.exe / .dll
+          - .NET 9 自包含运行时 DLL
+          - native\can\zlgcan\（含 kerneldlls\dll_cfg.ini、*.xml、devices_property\）
+          - native\can\peak\PCANBasic.dll
+          - native\can\controlcan\ControlCAN.dll
+          - native\can\toomoss\USB2XXX.dll、libusb-1.0.dll
+          - ota_pack_tool\
+          - runtimes\ (跨平台运行时子目录，自包含发布时已展平至根目录)
+    -->
+    <Fragment>
+        <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+            <Files Include="$(var.PublishDir)**\*" />
+        </ComponentGroup>
+    </Fragment>
+
+    <!-- ==================== 桌面快捷方式 ==================== -->
+    <Fragment>
+        <StandardDirectory Id="DesktopFolder">
+            <Component Id="ShortcutDesktop" Guid="{B2E4F681-A7C3-4D52-8B9E-D3F1A7C5E289}">
+                <Shortcut
+                    Id="DesktopShortcut"
+                    Name="GX Servo Studio"
+                    Description="GX Servo Studio 伺服驱动器调试配置工具"
+                    Target="[INSTALLFOLDER]servoStudio.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="AppIcon.ico" />
+                <RemoveFolder Id="RemoveDesktopFolder" Directory="DesktopFolder" On="uninstall" />
+                <!-- 快捷方式以 HKCU 注册值作为 KeyPath -->
+                <RegistryValue
+                    Root="HKCU"
+                    Key="Software\GXAutomation\ServoStudio"
+                    Name="DesktopShortcut"
+                    Type="integer"
+                    Value="1"
+                    KeyPath="yes" />
+            </Component>
+        </StandardDirectory>
+    </Fragment>
+
+    <!-- ==================== 开始菜单快捷方式 ==================== -->
+    <Fragment>
+        <DirectoryRef Id="StartMenuDir">
+            <Component Id="ShortcutStartMenu" Guid="{C3F5A792-B8D4-5E63-9C0F-E4A2B8D6F390}">
+                <Shortcut
+                    Id="StartMenuShortcut"
+                    Name="GX Servo Studio"
+                    Description="GX Servo Studio 伺服驱动器调试配置工具"
+                    Target="[INSTALLFOLDER]servoStudio.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="AppIcon.ico" />
+                <RemoveFolder Id="RemoveStartMenuDir" Directory="StartMenuDir" On="uninstall" />
+                <RegistryValue
+                    Root="HKCU"
+                    Key="Software\GXAutomation\ServoStudio"
+                    Name="StartMenuShortcut"
+                    Type="integer"
+                    Value="1"
+                    KeyPath="yes" />
+            </Component>
+        </DirectoryRef>
+    </Fragment>
+
+</Wix>
+

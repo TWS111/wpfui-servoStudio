@@ -123,6 +123,111 @@
                          Maximum="{Binding ViewModel.ReadTotal}"
                          Value="{Binding ViewModel.ReadProgress}"/>
 
+            <!-- DI/DO 友好配置卡 -->
+            <ui:Card Margin="0,0,0,12" Padding="14">
+                <StackPanel>
+                    <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                        <TextBlock DockPanel.Dock="Left" Text="DI / DO 功能与极性配置" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                   Text="对应 H04.00–05 / H04.07–08，与下方 DataGrid 双向同步"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="320"
+                                   TextAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                    </DockPanel>
+
+                    <!-- DI 行 -->
+                    <Grid Margin="0,4,0,4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto" MinWidth="130"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="DI1" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,2"
+                                  ItemsSource="{Binding ViewModel.DiFunctionItems}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding ViewModel.Di1Func, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="False"/>
+                        <CheckBox Grid.Row="0" Grid.Column="2" Margin="8,2,4,2" Content="高电平有效"
+                                  IsChecked="{Binding ViewModel.Di1PolarityHigh}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="DI2" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,2"
+                                  ItemsSource="{Binding ViewModel.DiFunctionItems}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding ViewModel.Di2Func, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="False"/>
+                        <CheckBox Grid.Row="1" Grid.Column="2" Margin="8,2,4,2" Content="高电平有效"
+                                  IsChecked="{Binding ViewModel.Di2PolarityHigh}"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="DI3" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,2"
+                                  ItemsSource="{Binding ViewModel.DiFunctionItems}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding ViewModel.Di3Func, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="False"/>
+                        <CheckBox Grid.Row="2" Grid.Column="2" Margin="8,2,4,2" Content="高电平有效"
+                                  IsChecked="{Binding ViewModel.Di3PolarityHigh}"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="DI4" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,2"
+                                  ItemsSource="{Binding ViewModel.DiFunctionItems}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding ViewModel.Di4Func, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="False"/>
+                        <CheckBox Grid.Row="3" Grid.Column="2" Margin="8,2,4,2" Content="高电平有效"
+                                  IsChecked="{Binding ViewModel.Di4PolarityHigh}"/>
+                    </Grid>
+
+                    <Separator Margin="0,8,0,8"/>
+
+                    <!-- DO 行 -->
+                    <Grid Margin="0,0,0,4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto" MinWidth="130"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="DO1" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,2"
+                                  ItemsSource="{Binding ViewModel.DoFunctionItems}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding ViewModel.Do1Func, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="False"/>
+                        <CheckBox Grid.Row="0" Grid.Column="2" Margin="8,2,4,2" Content="高电平有效"
+                                  IsChecked="{Binding ViewModel.Do1PolarityHigh}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="DO2" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,2"
+                                  ItemsSource="{Binding ViewModel.DoFunctionItems}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding ViewModel.Do2Func, UpdateSourceTrigger=PropertyChanged}"
+                                  IsEditable="False"/>
+                        <CheckBox Grid.Row="1" Grid.Column="2" Margin="8,2,4,2" Content="高电平有效"
+                                  IsChecked="{Binding ViewModel.Do2PolarityHigh}"/>
+                    </Grid>
+
+                    <TextBlock Margin="0,8,0,0" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="提示：仅列出常用功能码；如需自定义功能码可直接在下方 DataGrid 中编辑 H04.00~05 的数值。修改后请点击工具栏「写入已修改参数」下发到从机。"/>
+                </StackPanel>
+            </ui:Card>
+
             <!-- 参数表格 -->
             <DataGrid AutoGenerateColumns="False"
                       CanUserAddRows="False"

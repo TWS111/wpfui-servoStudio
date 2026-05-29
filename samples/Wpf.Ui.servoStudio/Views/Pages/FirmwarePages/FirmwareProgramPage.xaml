@@ -55,7 +55,8 @@
         </Border>
 
         <!-- ══════ 三个子菜单页 (TabControl) ══════ -->
-        <TabControl Grid.Row="1" FontSize="15">
+        <TabControl Grid.Row="1" FontSize="15"
+                    SelectedIndex="{Binding ViewModel.SelectedTabIndex, Mode=TwoWay}">
 
             <!-- ═══ 第一页: FoE 固件烧录 ═══ -->
             <TabItem Header="FoE 固件烧录" Padding="16,8">

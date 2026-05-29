@@ -4,6 +4,7 @@
 // All Rights Reserved.
 
 using Wpf.Ui.servoStudio.Services;
+using Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
 namespace Wpf.Ui.servoStudio.ViewModels;
 
@@ -97,6 +98,18 @@ public partial class SettingsViewModel : ViewModel
     private bool _isDebugMode;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CommLostThresholdDisplay))]
+    private int _commLostThreshold = DeviceAddViewModel.CommLostThreshold;
+
+    /// <summary>看门狗阈值的显示文本，用于 UI 提示。</summary>
+    public string CommLostThresholdDisplay => $"连续 {CommLostThreshold} 次失败后触发急停（约 {CommLostThreshold * 2} 秒）";
+
+    partial void OnCommLostThresholdChanged(int value)
+    {
+        DeviceAddViewModel.CommLostThreshold = System.Math.Max(1, value);
+    }
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanInputFactoryPassword))]
     [NotifyPropertyChangedFor(nameof(FactoryStatusText))]
     [NotifyPropertyChangedFor(nameof(FactoryStatusKind))]
@@ -184,6 +197,14 @@ public partial class SettingsViewModel : ViewModel
         IsFollowingSystemTheme = Services.UserSettingsService.Load().ThemeMode == "theme_system";
         IsDebugMode = Services.UserSettingsService.Load().IsDebugMode;
         AppVersion = $"Wpf.Ui.servoStudio - {GetAssemblyVersion()}";
+
+        // 加载运动周期同步设置
+        UserSettings s = Services.UserSettingsService.Load();
+        _suppressMotionSyncSave = true;
+        MotionCyclicTimerKindIndex = System.Math.Clamp(s.Motion_CyclicTimerKind, 0, 2);
+        MotionPreferPdoForCyclicSync = s.Motion_PreferPdoForCyclicSync;
+        _suppressMotionSyncSave = false;
+
         _isInitialized = true;
     }
 
@@ -295,5 +316,53 @@ public partial class SettingsViewModel : ViewModel
         UserSettings settings = Services.UserSettingsService.Load();
         settings.IsDebugMode = value;
         Services.UserSettingsService.Save(settings);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  运动周期同步（CSP/CSV/CST）— 底层周期定时器与 PDO 路径开关
+    // ════════════════════════════════════════════════════════════════════════
+
+    private bool _suppressMotionSyncSave;
+
+    /// <summary>
+    /// 周期同步定时器候选列表（与 <see cref="Core.Sync.CyclicTimerKind"/> 索引对齐）。<br/>
+    /// 0=PeriodicTimer, 1=WinMm, 2=SpinWait。绑定到 SettingsPage 的 ComboBox。
+    /// </summary>
+    public System.Collections.ObjectModel.ObservableCollection<string> MotionCyclicTimerKinds { get; }
+        = new(new[]
+        {
+            Core.Sync.CyclicTimerFactory.DisplayName(Core.Sync.CyclicTimerKind.PeriodicTimer),
+            Core.Sync.CyclicTimerFactory.DisplayName(Core.Sync.CyclicTimerKind.WinMm),
+            Core.Sync.CyclicTimerFactory.DisplayName(Core.Sync.CyclicTimerKind.SpinWait),
+        });
+
+    [ObservableProperty]
+    private int _motionCyclicTimerKindIndex;
+
+    [ObservableProperty]
+    private bool _motionPreferPdoForCyclicSync = true;
+
+    partial void OnMotionCyclicTimerKindIndexChanged(int value)
+    {
+        if (_suppressMotionSyncSave) return;
+        try
+        {
+            UserSettings s = Services.UserSettingsService.Load();
+            s.Motion_CyclicTimerKind = System.Math.Clamp(value, 0, 2);
+            Services.UserSettingsService.Save(s);
+        }
+        catch { /* ignore */ }
+    }
+
+    partial void OnMotionPreferPdoForCyclicSyncChanged(bool value)
+    {
+        if (_suppressMotionSyncSave) return;
+        try
+        {
+            UserSettings s = Services.UserSettingsService.Load();
+            s.Motion_PreferPdoForCyclicSync = value;
+            Services.UserSettingsService.Save(s);
+        }
+        catch { /* ignore */ }
     }
 }

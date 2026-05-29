@@ -137,15 +137,17 @@ public static class EsiToSiiConverter
 
         // ── 构建字符串表 ──
         // SII 字符串索引从 1 开始
+        // 注意：SOEM 在 ec_config.c 中硬编码读取字符串索引 1 作为从站显示名称
+        //       (ecx_siistring(..., slave, 1))，因此索引 1 必须是设备型号名称。
         var stringTable = new List<string>();
-        // Index 1: Group type name
-        stringTable.Add(groupType.Length > 0 ? groupType : groupName);
-        // Index 2: Image (empty placeholder)
-        stringTable.Add("");
-        // Index 3: Device order number / type name
+        // Index 1: Device type name — SOEM 硬编码读 string[1] 作为从站名
         stringTable.Add(typeName);
-        // Index 4: Device display name
-        stringTable.Add(deviceName);
+        // Index 2: Group type name
+        stringTable.Add(groupType.Length > 0 ? groupType : groupName);
+        // Index 3: Image (empty placeholder)
+        stringTable.Add("");
+        // Index 4: Device display name (sanitize non-Latin1 chars for SII encoding)
+        stringTable.Add(SanitizeLatin1(deviceName));
 
         // 预收集所有 PDO 名称和条目名称到字符串表
         // (必须在写入 STRINGS Category 之前完成，否则 PDO 引用的字符串索引无效)
@@ -204,9 +206,16 @@ public static class EsiToSiiConverter
         byte[] configBytes = HexStringToBytes(configDataHex);
         Array.Copy(configBytes, 0, header, 0, Math.Min(configBytes.Length, 14));
 
-        // ── Word 7 (bytes 14-15): CRC-8 + padding ──
+        // ── Word 7 (bytes 14-15): CRC-8 + Reserved ──
+        // ETG.2010 §6.2.1: byte 14 = CRC-8 over byte 0..13; byte 15 = reserved (0x00).
+        // Writing 0xFF in byte 15 (a common copy-paste mistake) is rejected by some
+        // ESC implementations as a "Configured Area corrupt" condition during
+        // EEPROM Loading, which silently makes the slave fall back to default
+        // Identity (showing up as generic "Drive") even though our APRD readback
+        // verification still passes (we read the same bytes we just wrote).
+        // TwinCAT's eeprom-burner writes 0x00 here.
         header[14] = ComputeSiiCrc(header, 0, 14);
-        header[15] = 0xFF;
+        header[15] = 0x00;
 
         // ── Words 8-9 (bytes 16-19): Vendor ID ──
         WriteUInt32LE(header, 16, vendorId);
@@ -236,13 +245,24 @@ public static class EsiToSiiConverter
         WriteUInt16LE(header, 56, mbxProtocol);
         // byte 58-59: reserved (0)
 
-        // ── Word 31 (bytes 62-63): EEPROM Size ──
-        // ETG.2010 §6.2: value = (Size in KBit) − 1.
-        // e.g. 16 KBit (=2 KByte) → 0x000F, 32 KBit → 0x001F.
-        // Writing the raw KBit value (a common bug) causes the ESC to reject
-        // the SII on next EEPROM load → slave becomes unconnectable.
+        // ── Word 31 (bytes 62-63): EEPROM Size + Version ──
+        // ETG.1000.6 §5.4 / ETG.2010 Table 4 — Word 0x001F:
+        //   byte 0x3E (low) : EEPROM size encoded as (size_in_KByte/0.125 - 1)
+        //                     ≡ KBit minus 1 (since 1 KByte = 8 KBit). Examples:
+        //                       2 KByte (=16 KBit) → 0x0F
+        //                       4 KByte (=32 KBit) → 0x1F
+        //                      32 KByte (=256 KBit) → 0xFF
+        //   byte 0x3F (high): Version. Per ETG.2010 v1.5 the recommended value is
+        //                     0x01 (newer); 0x00 is treated as "version unknown"
+        //                     by some ESCs and may cause them to refuse the
+        //                     Configured Area on EEPROM Loading.
+        // Older code wrote (KBit-1) as a 16-bit LE value, which left byte 63=0
+        // (Version=0) — TwinCAT-burned EEPROMs typically have Version=1, so we
+        // mirror that to avoid implementation-specific rejection.
         int eepromKBit = Math.Max(1, eepromByteSize * 8 / 1024);
-        WriteUInt16LE(header, 62, (ushort)(eepromKBit - 1));
+        byte sizeByte = (byte)Math.Min(0xFF, eepromKBit - 1);
+        header[62] = sizeByte;
+        header[63] = 0x01; // Version
 
         // ── Words 32-63 (bytes 64-127): Reserved — 已经是 0 ──
 
@@ -381,10 +401,10 @@ public static class EsiToSiiConverter
     {
         // General category: 32 bytes (16 words)
         byte[] data = new byte[32];
-        data[0] = 1;  // GroupIdx (string index 1)
-        data[1] = 2;  // ImageIdx (string index 2)
-        data[2] = 3;  // OrderIdx (string index 3)
-        data[3] = 4;  // NameIdx  (string index 4)
+        data[0] = 2;  // GroupIdx (string index 2 = groupType)
+        data[1] = 3;  // ImageIdx (string index 3 = "")
+        data[2] = 1;  // OrderIdx (string index 1 = typeName)
+        data[3] = 1;  // NameIdx  (string index 1 = typeName, SOEM 读 string[1] 作为名称)
         data[4] = 0;  // reserved
         data[5] = coeDetails;
         data[6] = foeDetails;
@@ -593,6 +613,36 @@ public static class EsiToSiiConverter
     private static ushort ParseEsiHex16(string value)
     {
         return (ushort)(ParseEsiHex32(value) & 0xFFFF);
+    }
+
+    /// <summary>
+    /// 将字符串中无法用 ISO-8859-1 编码的字符替换为 ASCII 近似字符，
+    /// 避免 Encoding.GetEncoding(28591) 将其编码为 '?' 导致 SII 字符串长度错误。
+    /// </summary>
+    private static string SanitizeLatin1(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (char c in s)
+        {
+            if (c <= 0xFF)
+            {
+                sb.Append(c);
+            }
+            else
+            {
+                // Replace common non-Latin1 characters with ASCII equivalents
+                sb.Append(c switch
+                {
+                    '\u2014' or '\u2013' => '-',  // EM dash / EN dash
+                    '\u201C' or '\u201D' => '"',  // curly quotes
+                    '\u2018' or '\u2019' => '\'', // curly apostrophes
+                    '\u2026' => '.', // ellipsis
+                    _ => '_'         // unknown non-Latin1
+                });
+            }
+        }
+        return sb.ToString();
     }
 
     private static byte AddOrFindString(List<string> stringTable, string value)

@@ -55,11 +55,16 @@ public sealed class SerialCanBus : ICanBus
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (string.IsNullOrEmpty(PortName))
+        {
             return false;
+        }
 
         try
         {
-            if (_port.IsOpen) _port.Close();
+            if (_port.IsOpen)
+            {
+                _port.Close();
+            }
 
             _port.PortName = PortName;
             _port.BaudRate = SerialBaudRate;
@@ -70,7 +75,10 @@ public sealed class SerialCanBus : ICanBus
             _port.WriteTimeout = CommandTimeoutMs;
             _port.NewLine = "\r";
             _port.Open();
-            if (!_port.IsOpen) return false;
+            if (!_port.IsOpen)
+            {
+                return false;
+            }
 
             // 关闭可能残留的旧通道
             _ = SendCommand("C");
@@ -116,7 +124,11 @@ public sealed class SerialCanBus : ICanBus
 
     public void Close()
     {
-        if (!IsOpen && !(_port?.IsOpen ?? false)) return;
+        if (!IsOpen && !(_port?.IsOpen ?? false))
+        {
+            return;
+        }
+
         IsOpen = false;
         try { _rxCts?.Cancel(); } catch { /* ignore */ }
         try { _rxThread?.Join(200); } catch { /* ignore */ }
@@ -129,28 +141,42 @@ public sealed class SerialCanBus : ICanBus
 
     public bool Send(CanFrame frame)
     {
-        if (!IsOpen) return false;
+        if (!IsOpen)
+        {
+            return false;
+        }
         // t<id3><dlc1><data hex>\r
         var sb = new StringBuilder(5 + 16);
         sb.Append('t');
         sb.Append(frame.Id.ToString("X3", CultureInfo.InvariantCulture));
         sb.Append(frame.Dlc.ToString("X1", CultureInfo.InvariantCulture));
         for (int i = 0; i < frame.Dlc; i++)
+        {
             sb.Append(frame.Data[i].ToString("X2", CultureInfo.InvariantCulture));
+        }
+
         return SendCommand(sb.ToString());
     }
 
     public bool TryReceive(int timeoutMs, out CanFrame frame)
     {
         frame = default;
-        if (!IsOpen) return false;
+        if (!IsOpen)
+        {
+            return false;
+        }
+
         try { return _rxQueue.TryTake(out frame, timeoutMs); }
         catch (InvalidOperationException) { return false; }
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         try { Close(); } catch { /* ignore */ }
         _rxQueue.Dispose();
@@ -205,12 +231,19 @@ public sealed class SerialCanBus : ICanBus
                 else
                 {
                     buf.Append(c);
-                    if (buf.Length > 64) buf.Clear(); // 防止爆缓冲
+                    if (buf.Length > 64)
+                    {
+                        buf.Clear(); // 防止爆缓冲
+                    }
                 }
             }
 
             // 防止 CPU 100% 空转（_port.Read 为阻塞）
-            if (got == 0) Thread.Sleep(1);
+            if (got == 0)
+            {
+                Thread.Sleep(1);
+            }
+
             _ = sw;
         }
     }
@@ -218,19 +251,39 @@ public sealed class SerialCanBus : ICanBus
     private void TryParseFrame(string line)
     {
         // 11 位标准帧：t<3 hex id><1 hex dlc><dlc*2 hex data>
-        if (line.Length < 5 || line[0] != 't') return;
+        if (line.Length < 5 || line[0] != 't')
+        {
+            return;
+        }
+
         if (!ushort.TryParse(line.AsSpan(1, 3), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ushort id))
+        {
             return;
+        }
+
         if (!byte.TryParse(line.AsSpan(4, 1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte dlc))
+        {
             return;
-        if (dlc > 8) return;
-        if (line.Length < 5 + dlc * 2) return;
+        }
+
+        if (dlc > 8)
+        {
+            return;
+        }
+
+        if (line.Length < 5 + dlc * 2)
+        {
+            return;
+        }
 
         var data = new byte[8];
         for (int i = 0; i < dlc; i++)
         {
             if (!byte.TryParse(line.AsSpan(5 + i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte b))
+            {
                 return;
+            }
+
             data[i] = b;
         }
 

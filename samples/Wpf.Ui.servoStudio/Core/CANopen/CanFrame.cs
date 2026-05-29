@@ -26,7 +26,10 @@ public readonly struct CanFrame : IEquatable<CanFrame>
     {
         ArgumentNullException.ThrowIfNull(data);
         if (data.Length > 8)
+        {
             throw new ArgumentOutOfRangeException(nameof(data), "经典 CAN 帧最多 8 字节数据");
+        }
+
         Id = (ushort)(id & 0x07FF);
         Dlc = (byte)data.Length;
         Data = new byte[8];
@@ -37,7 +40,10 @@ public readonly struct CanFrame : IEquatable<CanFrame>
     {
         ArgumentNullException.ThrowIfNull(data8);
         if (data8.Length != 8)
+        {
             throw new ArgumentException("data8 必须为 8 字节缓冲", nameof(data8));
+        }
+
         Id = (ushort)(id & 0x07FF);
         Dlc = Math.Min((byte)8, dlc);
         Data = new byte[8];

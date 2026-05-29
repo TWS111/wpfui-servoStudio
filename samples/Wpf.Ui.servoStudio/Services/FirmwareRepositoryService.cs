@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -69,6 +70,11 @@ public static class FirmwareRepositoryService
     public const string UnregisteredStatus = "未注册";
 
     /// <summary>
+    /// "发布"状态。ESI XML 文件上传时被强制为此值（见 <see cref="UploadAsync"/>）。
+    /// </summary>
+    public const string PublishedStatus = "发布";
+
+    /// <summary>
     /// 孤儿文件（仅出现在 files/ 中、未被索引引用）合成条目的 Id 前缀。
     /// </summary>
     public const string OrphanIdPrefix = "ORPHAN:";
@@ -112,18 +118,29 @@ public static class FirmwareRepositoryService
     /// </summary>
     public static bool IsCompanyNetworkAvailable()
     {
+        string? host = ExtractUncHost(DatabaseRoot);
+        if (string.IsNullOrEmpty(host))
+        {
+            return false;
+        }
+
+        // 冷启动场景下 NetBIOS / DNS 名称解析（尤其是中文主机名）首次耗时常 >1s，
+        // 因此先尝试 1s 快速路径，失败后再用 3s 重试一次，避免首次进入页面被误判为"未连接"。
+        if (TryTcpConnect(host, 445, TimeSpan.FromSeconds(1)))
+        {
+            return true;
+        }
+
+        return TryTcpConnect(host, 445, TimeSpan.FromSeconds(3));
+    }
+
+    private static bool TryTcpConnect(string host, int port, TimeSpan timeout)
+    {
         try
         {
-            string? host = ExtractUncHost(DatabaseRoot);
-            if (string.IsNullOrEmpty(host))
-            {
-                return false;
-            }
-
-            // 1秒内能建立 TCP 连接才认为公司网络可达。
             using var client = new TcpClient();
-            IAsyncResult ar = client.BeginConnect(host, 445, null, null);
-            bool connected = ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1), exitContext: false);
+            IAsyncResult ar = client.BeginConnect(host, port, null, null);
+            bool connected = ar.AsyncWaitHandle.WaitOne(timeout, exitContext: false);
             if (!connected)
             {
                 return false;
@@ -159,6 +176,24 @@ public static class FirmwareRepositoryService
         string trimmed = uncPath.Substring(2);
         int slash = trimmed.IndexOfAny(new[] { '\\', '/' });
         return slash > 0 ? trimmed.Substring(0, slash) : trimmed;
+    }
+
+    /// <summary>
+    /// 计算文件的 MD5 哈希值（十六进制大写、无分隔符）。读取失败返回空串。
+    /// </summary>
+    public static string ComputeMd5(string filePath)
+    {
+        try
+        {
+            using var md5 = MD5.Create();
+            using FileStream fs = File.OpenRead(filePath);
+            byte[] hash = md5.ComputeHash(fs);
+            return Convert.ToHexString(hash);
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     /// <summary>
@@ -268,6 +303,7 @@ public static class FirmwareRepositoryService
                         OriginalFileName = fileName,
                         StoredFileName = fileName,
                         FileSizeBytes = fi.Length,
+                        Md5 = ComputeMd5(filePath),
                         Version = string.Empty,
                         Name = fileName,
                         ApplicableHardwareVersion = string.Empty,
@@ -318,6 +354,20 @@ public static class FirmwareRepositoryService
         if (string.IsNullOrWhiteSpace(sourceFilePath) || !File.Exists(sourceFilePath))
         {
             throw new FileNotFoundException("源文件不存在。", sourceFilePath);
+        }
+
+        // ESI XML 上传特例：XML 不参与 OTA 签名流程，
+        // 但业务上视为可直接烧录的"发布"产物。
+        // 在此统一覆盖：禁用脚本签名，强制标记为外部已签名，强制状态为"发布"。
+        bool isXml = string.Equals(
+            Path.GetExtension(sourceFilePath),
+            ".xml",
+            StringComparison.OrdinalIgnoreCase);
+        if (isXml)
+        {
+            signFirst = false;
+            markExternallySigned = true;
+            status = PublishedStatus;
         }
 
         if (!IsCompanyNetworkAvailable())
@@ -395,6 +445,10 @@ public static class FirmwareRepositoryService
             OriginalFileName = originalName,
             StoredFileName = storedName,
             FileSizeBytes = fi.Length,
+            // 优先存储“实际可烧录产物”的 MD5：脚本签名后取签名产物，否则取原始文件。
+            Md5 = ComputeMd5(string.IsNullOrEmpty(signedStoredName)
+                ? destPath
+                : Path.Combine(filesDir, signedStoredName)),
             Version = version?.Trim() ?? string.Empty,
             Name = name?.Trim() ?? string.Empty,
             ApplicableHardwareVersion = applicableHardwareVersion?.Trim() ?? string.Empty,
@@ -519,6 +573,8 @@ public static class FirmwareRepositoryService
         target.SignedFileSizeBytes = new FileInfo(signedDest).Length;
         target.SignType = signType;
         target.SignedAt = DateTime.Now;
+        // 签名产物为实际烧录文件，重新计算 MD5 使查询可验证烧录产物。
+        target.Md5 = ComputeMd5(signedDest);
         if (string.Equals(target.Status, DefaultStatus, StringComparison.Ordinal))
         {
             target.Status = SignedOnlyStatus;
@@ -762,6 +818,13 @@ public sealed class FirmwareEntry
     public string OriginalFileName { get; set; } = string.Empty;
     public string StoredFileName { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }
+
+    /// <summary>
+    /// 烧录产物的 MD5 哈希值（十六进制大写）。上传时计算：
+    /// 脚本签名后会被重新计算为签名产物的 MD5，以保证与烧录产物一致。
+    /// 老数据 / 孤儿条目可能为空，UI 上显示为 "-"。
+    /// </summary>
+    public string Md5 { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string ApplicableHardwareVersion { get; set; } = string.Empty;

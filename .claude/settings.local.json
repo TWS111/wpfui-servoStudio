@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xxd -l 200 -s 580 \"c:/UserWorx/VSWorx/ServoStudio/wpfui-servoStudio/samples/Wpf.Ui.servoStudio/Views/Pages/FactoryPages/FactoryPage.xaml.cs\")",
+      "Bash(python3 -c ' *)",
+      "WebSearch",
+      "Bash(python3 find_bare_fences.py)",
+      "Bash(where blender *)",
+      "Bash(where uvx *)",
+      "WebFetch(domain:code.visualstudio.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:blender-mcp.com)",
+      "WebFetch(domain:www.augmentcode.com)"
+    ]
+  }
+}

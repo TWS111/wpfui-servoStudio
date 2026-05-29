@@ -52,11 +52,263 @@ public partial class DataViewPage : INavigableView<DataViewViewModel>
         Plot.Refresh();
 
         ViewModel.ChannelsReplaced += OnChannelsReplaced;
+        ViewModel.LiveFrameReceived += OnLiveFrameReceived;
+        ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
 
     /// <summary>
+    /// 上一次 <see cref="OnCompositionRendering"/> 实际执行刷新的时间戳（毫秒）。<br/>
+    /// CompositionTarget.Rendering 会以显示器刷新率（~60Hz）触发，过高帧率下 ScottPlot
+    /// 重绘与数据更新周期并不匹配，节流至 ~20fps 既平滑又节省 GPU/CPU。
+    /// </summary>
+    private long _liveLastRenderMs;
+
+    /// <summary>是否已订阅 CompositionTarget.Rendering（防重复订阅）。</summary>
+    private bool _liveRenderingHooked;
+
+    /// <summary>最小重绘间隔，50ms = 20fps。</summary>
+    private const int LiveMinRefreshIntervalMs = 50;
+
+    private readonly System.Diagnostics.Stopwatch _liveClock = System.Diagnostics.Stopwatch.StartNew();
+
+    /// <summary>静默模式下后台线程置位，UI tick 时若被置位则刷新波形。</summary>
+    private volatile bool _liveDirty;
+
+    /// <summary>是否已手动暂停波形刷新（按下“暂停刷新”按钮时置 true）。
+    /// 暂停期间后台 Modbus 线程仍继续接收数据，只是不刷新画面。</summary>
+    private bool _isLivePaused;
+
+    /// <summary>
+    /// 在线接收模式下按通道名缓存的持久 Signal 对象。<br/>
+    /// 每帧只更新 <c>Signal.Data.Ys</c>，跳过 Clear/Add/AutoScale/ApplyCjkFont/ApplyTheme，
+    /// 将 UI 线程每帧负荷从 O(字体匹配 × 帧率) 降至 O(渲染)，消除周期性卡顿。
+    /// </summary>
+    private Dictionary<string, ScottPlot.Plottables.Signal>? _liveSignals;
+
+    /// <summary>
+    /// 与 <see cref="_liveSignals"/> 同步：每个 Signal 当前绑定的 <see cref="DataChannel.LiveBuffer"/>
+    /// 引用。容量变化时通道会重建 LiveBuffer，此处用引用相等检测来触发 Signal 重建。
+    /// </summary>
+    private Dictionary<string, double[]>? _liveBoundBuffers;
+
+    private void OnLiveFrameReceived()
+    {
+        _liveDirty = true;
+        Services.LiveDiag.Tick("frame.recv");
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DataViewViewModel.IsLiveReceiveEnabled))
+        {
+            if (ViewModel.IsLiveReceiveEnabled)
+            {
+                Services.LiveDiag.Enable();
+                _liveSignals = null;  // 强制下次 tick 全量重建
+                _liveBoundBuffers = null;
+                _liveDirty = true;
+                HookLiveRendering();
+            }
+            else
+            {
+                UnhookLiveRendering();
+                _liveSignals = null;
+                _liveBoundBuffers = null;
+                // 恢复暂停状态，重置按钮外观
+                _isLivePaused = false;
+                LivePauseButton.Visibility = System.Windows.Visibility.Visible;
+                LiveResumeButton.Visibility = System.Windows.Visibility.Collapsed;
+                // 停止后做一次全量重建（含 AutoScale / 字体 / 主题）
+                RebuildPlot();
+                Services.LiveDiag.Flush();
+                Services.LiveDiag.Disable();
+            }
+        }
+    }
+
+    private void HookLiveRendering()
+    {
+        if (_liveRenderingHooked)
+        {
+            return;
+        }
+        System.Windows.Media.CompositionTarget.Rendering += OnCompositionRendering;
+        _liveRenderingHooked = true;
+    }
+
+    private void UnhookLiveRendering()
+    {
+        if (!_liveRenderingHooked)
+        {
+            return;
+        }
+        System.Windows.Media.CompositionTarget.Rendering -= OnCompositionRendering;
+        _liveRenderingHooked = false;
+    }
+
+    /// <summary>
+    /// 代替 <see cref="DispatcherTimer"/> 的高优先级帧同步回调。CompositionTarget.Rendering 在 WPF
+    /// 合成线程准备帧时触发，不会被本身的渲染任务饣死，与 Render 优先级同阶。
+    /// 按 <see cref="LiveMinRefreshIntervalMs"/> 内部节流到 20fps。
+    /// </summary>
+    private void OnPauseLiveRefresh(object sender, System.Windows.RoutedEventArgs e)
+    {
+        _isLivePaused = true;
+        LivePauseButton.Visibility = System.Windows.Visibility.Collapsed;
+        LiveResumeButton.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private void OnResumeLiveRefresh(object sender, System.Windows.RoutedEventArgs e)
+    {
+        _isLivePaused = false;
+        _liveDirty = true;  // 立即触发一帧刷新
+        LiveResumeButton.Visibility = System.Windows.Visibility.Collapsed;
+        LivePauseButton.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private void OnCompositionRendering(object? sender, EventArgs e)
+    {
+        if (_isLivePaused)
+        {
+            return;
+        }
+        if (!_liveDirty)
+        {
+            Services.LiveDiag.Tick("tick.idle");
+            return;
+        }
+        long now = _liveClock.ElapsedMilliseconds;
+        if (now - _liveLastRenderMs < LiveMinRefreshIntervalMs)
+        {
+            Services.LiveDiag.Tick("tick.throttle");
+            return;
+        }
+        _liveLastRenderMs = now;
+        _liveDirty = false;
+        using (Services.LiveDiag.Scoped("tick.total"))
+        {
+            UpdateLivePlot();
+        }
+    }
+
+    /// <summary>
+    /// 在线接收专用轻量帧刷新。<br/>
+    /// <b>动态流模式</b>（每帧执行）：仅 <c>SignalSourceDouble.MaximumIndex</c> 调整 +
+    /// <c>AutoScaleY</c> + <c>Refresh()</c>。零 GC 分配、无字体匹配/主题/AutoScaleX。<br/>
+    /// <b>全量重建</b>（首次 / 新增通道 / 容量变化）：复用 ViewModel 预分配的 <see cref="DataChannel.LiveBuffer"/>
+    /// 创建 <c>Signal</c>，绑定一次后由动态路径直接使用。
+    /// </summary>
+    private void UpdateLivePlot()
+    {
+        var channels = ViewModel.Channels;
+
+        // ── 判断是否需要全量重建：缓存为空 / 通道集合变化 / buffer 引用变化 ───────
+        bool needFullRebuild = _liveSignals is null || _liveSignals.Count == 0;
+        if (!needFullRebuild && _liveSignals is not null && _liveBoundBuffers is not null)
+        {
+            foreach (var ch in channels)
+            {
+                if (!ch.IsVisible || ch.LiveBuffer is null)
+                {
+                    continue;
+                }
+                if (!_liveSignals.ContainsKey(ch.Name))
+                {
+                    needFullRebuild = true;
+                    break;
+                }
+                // 容量变化时 buffer 引用会被替换 → 需重建 SignalSourceDouble
+                if (!_liveBoundBuffers.TryGetValue(ch.Name, out var boundBuf)
+                    || !ReferenceEquals(boundBuf, ch.LiveBuffer))
+                {
+                    needFullRebuild = true;
+                    break;
+                }
+            }
+        }
+
+        if (needFullRebuild)
+        {
+            using (Services.LiveDiag.Scoped("build.signals"))
+            {
+                BuildLiveSignals();
+            }
+            return;
+        }
+
+        // ── 动态流路径：更新 MaximumIndex + Y 自动缩放 + 刷新 ───────────────
+        foreach (var ch in channels)
+        {
+            if (!ch.IsVisible || ch.LiveBuffer is null)
+            {
+                continue;
+            }
+            if (!_liveSignals!.TryGetValue(ch.Name, out var sig))
+            {
+                continue;
+            }
+            if (sig.Data is ScottPlot.DataSources.SignalSourceDouble src)
+            {
+                int maxIdx = Math.Max(0, ch.LiveValidCount - 1);
+                if (src.MaximumIndex != maxIdx)
+                {
+                    src.MaximumIndex = maxIdx;
+                }
+            }
+        }
+
+        // 高速流场景下 Y 范围必须每帧重算才能跟随波形（这是用户卡顿原因之一：之前根本没调用）。
+        // AutoScaleY 内部仅扫描各 Signal 的可见区间，开销 ~O(可见样本数)，远低于全量 RebuildPlot。
+        using (Services.LiveDiag.Scoped("tick.autoscaleY"))
+        {
+            Plot.Plot.Axes.AutoScaleY();
+        }
+        using (Services.LiveDiag.Scoped("tick.refresh"))
+        {
+            Plot.Refresh();
+        }
+    }
+
+    /// <summary>
+    /// 用 <see cref="DataChannel.LiveBuffer"/> 重建所有在线 <c>Signal</c> 并应用字体/主题/AutoScale。
+    /// 一次性绑定后由 <see cref="UpdateLivePlot"/> 的动态路径反复刷新而无需再分配。
+    /// </summary>
+    private void BuildLiveSignals()
+    {
+        _liveSignals = new Dictionary<string, ScottPlot.Plottables.Signal>(ViewModel.Channels.Count);
+        _liveBoundBuffers = new Dictionary<string, double[]>(ViewModel.Channels.Count);
+        Plot.Plot.Clear();
+        bool any = false;
+        foreach (var ch in ViewModel.Channels)
+        {
+            if (!ch.IsVisible || ch.LiveBuffer is null || ch.LiveBuffer.Length == 0)
+            {
+                continue;
+            }
+            // 直接绑定到通道预分配 buffer，不复制；后续每帧零分配。
+            var src = new ScottPlot.DataSources.SignalSourceDouble(ch.LiveBuffer, 1.0)
+            {
+                MaximumIndex = Math.Max(0, ch.LiveValidCount - 1),
+            };
+            var sig = Plot.Plot.Add.Signal(src);
+            sig.LegendText = $"{ch.ChannelLabel}  {ch.DisplayLabel}";
+            sig.Color = ParseColor(ch.ColorHex);
+            sig.LineWidth = 1.5f;
+            _liveSignals[ch.Name] = sig;
+            _liveBoundBuffers[ch.Name] = ch.LiveBuffer;
+            any = true;
+        }
+        if (any)
+        {
+            Plot.Plot.Axes.AutoScale();
+        }
+        ApplyCjkFont();
+        ApplyTheme();
+        Plot.Refresh();
+        UpdateXRangeBoxesFromPlot();
+    }    /// <summary>
     /// 通过 <see cref="ScottPlot.Fonts.AddFontFile"/> 把 Windows 系统字体文件
     /// （Microsoft YaHei / SimSun 任何一个能找到的）注册给 SkiaSharp，
     /// 返回注册后的字体名。如果都不存在则回退为 ScottPlot 默认字体。
@@ -168,11 +420,28 @@ public partial class DataViewPage : INavigableView<DataViewViewModel>
         RebuildPlot();   // 内部已调用 ApplyTheme() + Plot.Refresh()
         // 订阅后续 App 主题变化
         Wpf.Ui.Appearance.ApplicationThemeManager.Changed += OnAppThemeChanged;
+
+        // 鼠标拖动平移 / 滚轮缩放 / 双击复位 后把最新轴范围同步回 NumberBox。
+        // ScottPlot.WPF.WpfPlot 直接暴露标准 WPF 输入事件；交互完成后再读取范围。
+        Plot.MouseUp += OnPlotInteractionEnded;
+        Plot.MouseWheel += OnPlotInteractionEnded;
+        Plot.MouseDoubleClick += OnPlotInteractionEnded;
+
+        // 如果导航返回时在线接收仍开启则恢复刷新帧同步回调
+        if (ViewModel.IsLiveReceiveEnabled)
+        {
+            _liveDirty = true;
+            HookLiveRendering();
+        }
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         Wpf.Ui.Appearance.ApplicationThemeManager.Changed -= OnAppThemeChanged;
+        Plot.MouseUp -= OnPlotInteractionEnded;
+        Plot.MouseWheel -= OnPlotInteractionEnded;
+        Plot.MouseDoubleClick -= OnPlotInteractionEnded;
+        UnhookLiveRendering();
         UnsubscribeChannels();
     }
 
@@ -197,6 +466,8 @@ public partial class DataViewPage : INavigableView<DataViewViewModel>
 
     private void OnChannelsReplaced()
     {
+        _liveSignals = null;  // 通道集合整体替换，强制下次 live tick 全量重建
+        _liveBoundBuffers = null;
         UnsubscribeChannels();
         SubscribeChannels();
         RebuildPlot();
@@ -232,22 +503,29 @@ public partial class DataViewPage : INavigableView<DataViewViewModel>
     }
 
     /// <summary>
-    /// 用当前 ViewModel 的可见通道重建波形图。
+    /// 用当前 ViewModel 的可见通道重建波形图（全量路径，含字体/主题/AutoScale）。<br/>
+    /// 在线接收期间的帧刷新应使用 <see cref="UpdateLivePlot"/>，而非此方法。
     /// </summary>
     private void RebuildPlot()
     {
+        _liveSignals = null;  // 重建后缓存失效，下次 live tick 会重新填充
+        _liveBoundBuffers = null;
         Plot.Plot.Clear();
 
         bool any = false;
-        foreach (var ch in ViewModel.Channels)
+
+        // 通过 SnapshotChannels() 在 _liveLock 保护下一次性取得各通道数据副本，
+        // 避免后台在线接收线程并发修改 List<double> 时产生数据竞争（会引发偶发零值）。
+        var snapshots = ViewModel.SnapshotChannels();
+
+        foreach (var (ch, ys) in snapshots)
         {
-            if (!ch.IsVisible || ch.Values.Count == 0)
+            if (!ch.IsVisible || ys.Length == 0)
             {
                 continue;
             }
 
             // X = 0..N-1（按存储顺序），Y = 数据值
-            double[] ys = ch.Values.ToArray();
             var sig = Plot.Plot.Add.Signal(ys);
             sig.LegendText = $"{ch.ChannelLabel}  {ch.DisplayLabel}";
             sig.Color = ParseColor(ch.ColorHex);
@@ -264,6 +542,7 @@ public partial class DataViewPage : INavigableView<DataViewViewModel>
         ApplyCjkFont();
         ApplyTheme();
         Plot.Refresh();
+        UpdateXRangeBoxesFromPlot();
     }
 
     // ===== 主题切换（深色/浅色背景） =====
@@ -366,6 +645,101 @@ public partial class DataViewPage : INavigableView<DataViewViewModel>
         catch
         {
             // 持久化失败不影响运行
+        }
+    }
+
+    // ===== 横轴范围 / 自动缩放 =====
+
+    /// <summary>当 NumberBox.Value 由 <see cref="UpdateXRangeBoxesFromPlot"/> 程序赋值时
+    /// 抑制 <see cref="OnXRangeValueChanged"/> 反向回写 plot，避免循环触发。</summary>
+    private bool _suppressXRangeValueChanged;
+
+    private void OnXRangeKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            ApplyXRangeFromBoxes();
+            e.Handled = true;
+        }
+    }
+
+    private void OnApplyXRange(object sender, RoutedEventArgs e) => ApplyXRangeFromBoxes();
+
+    /// <summary>NumberBox 的 ValueChanged：用户点击右侧 ▲▼ 微调按钮、或拼写后失焦时触发 → 立即应用到 X 轴。</summary>
+    private void OnXRangeValueChanged(object sender, RoutedEventArgs e)
+    {
+        if (_suppressXRangeValueChanged)
+        {
+            return;
+        }
+
+        ApplyXRangeFromBoxes();
+    }
+
+    private void ApplyXRangeFromBoxes()
+    {
+        double? lo = XMinBox.Value;
+        double? hi = XMaxBox.Value;
+        if (lo is null || hi is null || hi <= lo)
+        {
+            UpdateXRangeBoxesFromPlot();
+            return;
+        }
+
+        Plot.Plot.Axes.SetLimitsX(lo.Value, hi.Value);
+        Plot.Refresh();
+    }
+
+    private void OnAutoX(object sender, RoutedEventArgs e)
+    {
+        Plot.Plot.Axes.AutoScaleX();
+        Plot.Refresh();
+        UpdateXRangeBoxesFromPlot();
+    }
+
+    private void OnAutoY(object sender, RoutedEventArgs e)
+    {
+        Plot.Plot.Axes.AutoScaleY();
+        Plot.Refresh();
+    }
+
+    private void OnAutoAll(object sender, RoutedEventArgs e)
+    {
+        Plot.Plot.Axes.AutoScale();
+        Plot.Refresh();
+        UpdateXRangeBoxesFromPlot();
+    }
+
+    /// <summary>
+    /// 鼠标拖动 / 滚轮缩放后 ScottPlot 已重绘，此处把最新轴范围回填到 NumberBox。
+    /// 订阅在 OnLoaded() 中完成。MouseUp / MouseWheel / MouseDoubleClick 三种委托
+    /// 的 EventArgs 都派生自 RoutedEventArgs，用基类签名即可统一接管。
+    /// </summary>
+    private void OnPlotInteractionEnded(object sender, RoutedEventArgs e)
+    {
+        UpdateXRangeBoxesFromPlot();
+    }
+
+    /// <summary>把当前 Plot 的 X 范围回填到两个 NumberBox（用于自动缩放或重建后展示）。
+    /// 取整后回写以避免 NumberBox 在 MaxDecimalPlaces=0 下做尾数显示截断。</summary>
+    private void UpdateXRangeBoxesFromPlot()
+    {
+        try
+        {
+            var lim = Plot.Plot.Axes.GetLimits();
+            double lo = Math.Floor(lim.Left);
+            double hi = Math.Ceiling(lim.Right);
+            _suppressXRangeValueChanged = true;
+            XMinBox.Value = lo;
+            XMaxBox.Value = hi;
+        }
+        catch
+        {
+            // ignore
+        }
+        finally
+        {
+            _suppressXRangeValueChanged = false;
         }
     }
 

@@ -1,0 +1,175 @@
+<Page
+    x:Class="Wpf.Ui.servoStudio.Views.Pages.MotionPages.MultiStepProfilePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.MotionPages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="多段速/多段位置"
+    d:DataContext="{d:DesignInstance local:MultiStepProfilePage,IsDesignTimeCreatable=False}"
+    d:DesignHeight="700"
+    d:DesignWidth="1100"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    mc:Ignorable="d">
+    <Page.Resources>
+        <Style x:Key="NumCell" TargetType="ui:NumberBox">
+            <Setter Property="Margin" Value="0,4,0,4" />
+            <Setter Property="ClearButtonEnabled" Value="False" />
+            <Setter Property="SpinButtonPlacementMode" Value="Compact" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24">
+            <TextBlock FontSize="20" FontWeight="Medium" Text="多段速 / 多段位置 (H10)" />
+            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="设置多段速触发模式、8 段速度值、4 段加减速时间与 4 段位置位移。" />
+
+            <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="H10.00 触发模式:" />
+                <ComboBox Width="220" Margin="0,0,16,0"
+                          SelectedIndex="{Binding ViewModel.MultiStepMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                    <ComboBoxItem Content="0 - 顺序执行" />
+                    <ComboBoxItem Content="1 - DI触发选择" />
+                    <ComboBoxItem Content="2 - 通信触发" />
+                    <ComboBoxItem Content="3 - 外部脉冲触发" />
+                </ComboBox>
+                <ui:Button Margin="0,0,8,0" Content="读取" Command="{Binding ViewModel.ReadAllCommand}" />
+                <ui:Button Margin="0,0,12,0" Appearance="Primary" Content="写入" Command="{Binding ViewModel.WriteAllCommand}" />
+                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{Binding ViewModel.StatusText}" />
+            </StackPanel>
+
+            <ui:Card Margin="0,16,0,0" Padding="16">
+                <StackPanel>
+                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="8 段速度 (rpm, H10.01 ~ H10.08)" />
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第1段:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="1"  Style="{StaticResource NumCell}" Minimum="-6000" Maximum="6000" Value="{Binding ViewModel.Speed1, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="3"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第2段:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="4"  Style="{StaticResource NumCell}" Minimum="-6000" Maximum="6000" Value="{Binding ViewModel.Speed2, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="6"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第3段:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="7"  Style="{StaticResource NumCell}" Minimum="-6000" Maximum="6000" Value="{Binding ViewModel.Speed3, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="9"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第4段:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="10" Style="{StaticResource NumCell}" Minimum="-6000" Maximum="6000" Value="{Binding ViewModel.Speed4, UpdateSourceTrigger=LostFocus}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第5段:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="1"  Style="{StaticResource NumCell}" Minimum="-6000" Maximum="6000" Value="{Binding ViewModel.Speed5, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="3"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第6段:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="4"  Style="{StaticResource NumCell}" Minimum="-6000" Maximum="6000" Value="{Binding ViewModel.Speed6, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="6"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第7段:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="7"  Style="{StaticResource NumCell}" Minimum="-6000" Maximum="6000" Value="{Binding ViewModel.Speed7, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="9"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第8段:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="10" Style="{StaticResource NumCell}" Minimum="-6000" Maximum="6000" Value="{Binding ViewModel.Speed8, UpdateSourceTrigger=LostFocus}" />
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Margin="0,12,0,0" Padding="16">
+                <StackPanel>
+                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="4 组加减速时间 (ms, H10.10 ~ H10.17)" />
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0"  Margin="0,4,8,4" VerticalAlignment="Center" Text="组1 加速:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="1"  Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.AccTime1, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="3"  Margin="0,4,8,4" VerticalAlignment="Center" Text="减速:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="4"  Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.DecTime1, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="6"  Margin="0,4,8,4" VerticalAlignment="Center" Text="组2 加速:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="7"  Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.AccTime2, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="9"  Margin="0,4,8,4" VerticalAlignment="Center" Text="减速:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="10" Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.DecTime2, UpdateSourceTrigger=LostFocus}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0"  Margin="0,4,8,4" VerticalAlignment="Center" Text="组3 加速:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="1"  Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.AccTime3, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="3"  Margin="0,4,8,4" VerticalAlignment="Center" Text="减速:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="4"  Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.DecTime3, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="6"  Margin="0,4,8,4" VerticalAlignment="Center" Text="组4 加速:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="7"  Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.AccTime4, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="9"  Margin="0,4,8,4" VerticalAlignment="Center" Text="减速:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="10" Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.DecTime4, UpdateSourceTrigger=LostFocus}" />
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Margin="0,12,0,16" Padding="16">
+                <StackPanel>
+                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="4 段位置位移 (圈数 + 脉冲, H10.20 ~ H10.27)" />
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="120" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第1段 圈数:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="1"  Style="{StaticResource NumCell}" Minimum="-32768" Maximum="32767" Value="{Binding ViewModel.Pos1Revs, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="3"  Margin="0,4,8,4" VerticalAlignment="Center" Text="脉冲:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="4"  Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.Pos1Pulses, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="6"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第2段 圈数:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="7"  Style="{StaticResource NumCell}" Minimum="-32768" Maximum="32767" Value="{Binding ViewModel.Pos2Revs, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="9"  Margin="0,4,8,4" VerticalAlignment="Center" Text="脉冲:" />
+                        <ui:NumberBox Grid.Row="0" Grid.Column="10" Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.Pos2Pulses, UpdateSourceTrigger=LostFocus}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第3段 圈数:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="1"  Style="{StaticResource NumCell}" Minimum="-32768" Maximum="32767" Value="{Binding ViewModel.Pos3Revs, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="3"  Margin="0,4,8,4" VerticalAlignment="Center" Text="脉冲:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="4"  Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.Pos3Pulses, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="6"  Margin="0,4,8,4" VerticalAlignment="Center" Text="第4段 圈数:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="7"  Style="{StaticResource NumCell}" Minimum="-32768" Maximum="32767" Value="{Binding ViewModel.Pos4Revs, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="9"  Margin="0,4,8,4" VerticalAlignment="Center" Text="脉冲:" />
+                        <ui:NumberBox Grid.Row="1" Grid.Column="10" Style="{StaticResource NumCell}" Minimum="0" Maximum="65535" Value="{Binding ViewModel.Pos4Pulses, UpdateSourceTrigger=LostFocus}" />
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

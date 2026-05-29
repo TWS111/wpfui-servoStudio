@@ -6,71 +6,1089 @@
     xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.DeviceSetPages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="ListPage"
+    Title="设备列表"
     d:DataContext="{d:DesignInstance local:ListPage,
                                      IsDesignTimeCreatable=False}"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
+    d:DesignHeight="900"
+    d:DesignWidth="1100"
     ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
     ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    ScrollViewer.CanContentScroll="False"
     mc:Ignorable="d">
 
-    <Grid x:Name="grid" 
-          Margin="20"
-          ShowGridLines="True"
-          HorizontalAlignment="Center" 
-          VerticalAlignment="Top">
-        <DataGrid ItemsSource="{Binding DeviceList}"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Top"                  
-                  CanUserAddRows="False" 
-                  CanUserDeleteRows="False" 
-                  
-                  IsReadOnly="True" Width="{Binding ElementName=grid, Mode=OneWay}"  >
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="设备名称" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="设备类型" Binding="{Binding Type}" Width="*"/>
-                <DataGridTextColumn Header="轴地址" Binding="{Binding IPAddress}" Width="*"/>
-                <DataGridTextColumn Header="软件版本号" Binding="{Binding Port}" Width="*"/>
-                <DataGridTextColumn Header="控制器版本号" Binding="{Binding Port}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <DataGrid
-          HorizontalAlignment="Center"
-          VerticalAlignment="Top"   
-          Margin="0, 200, 0, 0"
-          
-           Width="{Binding ElementName=grid, Mode=OneWay}"  >
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="软件版本" Binding="{Binding ViewModel.WeightCollection.SoftwareVersion}" Width="*"/>
-                <DataGridTextColumn Header="组号" Binding="{Binding ViewModel.WeightCollection.GroupNumber}" Width="*"/>
-                <DataGridComboBoxColumn Header="轮询"
-                        ItemsSource="{Binding ViewModel.WeightCollection.TurningOptions}"
-                        SelectedItemBinding="{Binding ViewModel.WeightCollection.SelectedTurning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-            </DataGrid.Columns>
-        </DataGrid>
-        
-        <DockPanel 
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="0, 260, 0, 0"
-            Visibility="{Binding ViewModel.IsScaningVisible}">
-            <ui:ProgressRing 
-                DockPanel.Dock="Top"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Height="50"
-                Width="50"
-                IsIndeterminate="True"/>
-            <TextBlock 
-                DockPanel.Dock="Bottom"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Margin="0,0,0,0"
-                FontSize="18"                
-                Text="扫描设备中... 或当前无设备连接"/>
-        </DockPanel>
-    </Grid>
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,4,12,4" />
+        </Style>
+
+        <Style x:Key="FieldValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,4,18,4" />
+        </Style>
+
+        <Style x:Key="AccentValueStyle" TargetType="TextBlock" BasedOn="{StaticResource FieldValueStyle}">
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+        </Style>
+
+        <Style x:Key="StatusTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="FormLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,12,10" />
+        </Style>
+
+        <Style x:Key="FormValueStyle" TargetType="TextBlock" BasedOn="{StaticResource StatusTextStyle}">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,12,10" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="20" MaxWidth="1200" HorizontalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="设备列表" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="查看当前连接的伺服设备，并在同一页切换连接协议。"
+                           Style="{StaticResource StatusTextStyle}"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+
+            <ui:Card Grid.Row="1" Margin="0,0,0,12" Padding="16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ui:SymbolIcon Grid.Column="0"
+                                   Symbol="PlugConnected24"
+                                   FontSize="34"
+                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,16,0" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="已连接设备概览" Style="{StaticResource SectionTitleStyle}" />
+                        <WrapPanel Margin="0,4,0,0">
+                            <TextBlock Text="当前协议栈：" Style="{StaticResource FieldLabelStyle}" Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding ViewModel.DeviceAdd.ActiveProtocol}" Style="{StaticResource AccentValueStyle}" Margin="0,0,18,0" />
+                            <TextBlock Text="连接状态：" Style="{StaticResource FieldLabelStyle}" Margin="0,0,4,0" />
+                            <TextBlock Margin="0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource FieldValueStyle}">
+                                        <Setter Property="Text" Value="未连接" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding ViewModel.DeviceAdd.IsUsbConnected}" Value="True" />
+                                                    <Condition Binding="{Binding ViewModel.DeviceAdd.IsAnyConnected}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Text" Value="USB（非控制栈）" />
+                                                <Setter Property="Foreground" Value="{DynamicResource SystemAccentColorBrush}" />
+                                            </MultiDataTrigger>
+                                            <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsAnyConnected}" Value="True">
+                                                <Setter Property="Text" Value="已连接" />
+                                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <ui:Button Grid.Column="2"
+                               Content="刷新 CAN 适配器"
+                               Icon="ArrowSync20"
+                               MinWidth="128"
+                               Height="34"
+                               VerticalAlignment="Center"
+                               Visibility="{Binding ViewModel.DeviceAdd.IsOnCanOpenTab, Converter={StaticResource BoolToVis}}"
+                               Command="{Binding ViewModel.DeviceAdd.RefreshCanAdaptersCommand}" />
+                </Grid>
+            </ui:Card>
+
+            <ui:Card Grid.Row="2" Padding="28" Margin="0,0,0,12">
+                <ui:Card.Style>
+                    <Style TargetType="ui:Card">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsAnyDeviceConnected}" Value="False">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ui:Card.Style>
+                <StackPanel HorizontalAlignment="Center">
+                    <ui:SymbolIcon Symbol="PlugDisconnected20"
+                                   FontSize="42"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="当前没有已连接的设备"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               Margin="0,12,0,0" />
+                    <TextBlock Text="可在下方选择 EtherCAT、CANopen、Modbus 或 USB 建立连接。"
+                               Style="{StaticResource StatusTextStyle}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </ui:Card>
+
+            <StackPanel Grid.Row="3">
+                <ui:Card Padding="16" Margin="0,0,0,12"
+                         Visibility="{Binding ViewModel.DeviceAdd.IsEthernetConnected, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Connector20" FontSize="20" VerticalAlignment="Center" />
+                                <TextBlock Text="EtherCAT" Style="{StaticResource SectionTitleStyle}" Margin="8,0,0,0" />
+                                <Border Background="{DynamicResource SystemFillColorSuccessBackgroundBrush}"
+                                        BorderBrush="{DynamicResource SystemFillColorSuccessBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="8,2"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="已连接"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
+                                </Border>
+                            </StackPanel>
+                            <ui:Button Grid.Column="1"
+                                       Content="断开"
+                                       Icon="PlugDisconnected20"
+                                       Appearance="Caution"
+                                       MinWidth="84"
+                                       Height="32"
+                                       Command="{Binding ViewModel.DeviceAdd.EthernetDisconnectCommand}" />
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="网络适配器" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ViewModel.DeviceAdd.SelectedEthernetName}" Style="{StaticResource AccentValueStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="从站信息" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding ViewModel.DeviceAdd.EthernetSlaveInfo}" Style="{StaticResource FieldValueStyle}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="从站名称" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ViewModel.DeviceAdd.EthernetSlaveNameInfo}" Style="{StaticResource FieldValueStyle}" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="从站地址" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding ViewModel.DeviceAdd.EthernetSlaveAddrInfo}" Style="{StaticResource FieldValueStyle}" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="从站状态" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ViewModel.DeviceAdd.EthernetSlaveStateInfo}" Style="{StaticResource AccentValueStyle}" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="状态信息" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding ViewModel.DeviceAdd.EthernetStatusText}" Style="{StaticResource FieldValueStyle}" />
+                        </Grid>
+
+                        <!-- 多从站时显示从站切换选择器 -->
+                        <Grid Margin="0,10,0,0"
+                              Visibility="{Binding ViewModel.DeviceAdd.IsEtherCatMultiSlaveVisible, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" MaxWidth="260" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="切换控制从站" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox Grid.Column="1"
+                                      Height="34"
+                                      ItemsSource="{Binding ViewModel.DeviceAdd.EtherCatSlaveList, Mode=OneWay}"
+                                      SelectedIndex="{Binding ViewModel.DeviceAdd.EtherCatSlaveSelect, Mode=TwoWay}"
+                                      VerticalAlignment="Center"
+                                      Margin="0,0,12,0" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding ViewModel.DeviceAdd.EthernetSlaveAddrInfo, StringFormat='当前地址: {0}'}"
+                                       Style="{StaticResource AccentValueStyle}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+
+                        <Separator Margin="0,12,0,10" />
+                        <WrapPanel>
+                            <TextBlock Text="从站状态切换" Style="{StaticResource FieldLabelStyle}" Margin="0,5,16,0" />
+                            <ui:Button Content="INIT" Height="32" MinWidth="76"
+                                       Command="{Binding ViewModel.DeviceAdd.NmtSwitchToInitCommand}">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.DeviceAdd.EthernetSlaveStateInfo}" Value="Init">
+                                                <Setter Property="Appearance" Value="Primary" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                            <ui:Button Content="PreOP" Height="32" MinWidth="76" Margin="6,0,0,0"
+                                       Command="{Binding ViewModel.DeviceAdd.NmtSwitchToPreOPCommand}">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.DeviceAdd.EthernetSlaveStateInfo}" Value="PreOperational">
+                                                <Setter Property="Appearance" Value="Primary" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                            <ui:Button Content="SafeOP" Height="32" MinWidth="76" Margin="6,0,0,0"
+                                       Command="{Binding ViewModel.DeviceAdd.NmtSwitchToSafeOPCommand}">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.DeviceAdd.EthernetSlaveStateInfo}" Value="SafeOperational">
+                                                <Setter Property="Appearance" Value="Primary" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                            <ui:Button Content="OP" Height="32" MinWidth="76" Margin="6,0,0,0"
+                                       Command="{Binding ViewModel.DeviceAdd.NmtSwitchToOPCommand}">
+                                <ui:Button.Style>
+                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.DeviceAdd.EthernetSlaveStateInfo}" Value="Operational">
+                                                <Setter Property="Appearance" Value="Primary" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ui:Button.Style>
+                            </ui:Button>
+                        </WrapPanel>
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Padding="16" Margin="0,0,0,12"
+                         Visibility="{Binding ViewModel.DeviceAdd.IsCanopenConnected, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="VehicleCar20" FontSize="20" VerticalAlignment="Center" />
+                                <TextBlock Text="CANopen" Style="{StaticResource SectionTitleStyle}" Margin="8,0,0,0" />
+                                <Border BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="8,2"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsCanopenSlaveOnline}" Value="False">
+                                                    <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding ViewModel.DeviceAdd.CanopenSlaveOnlineText}" FontSize="12" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsCanopenSlaveOnline}" Value="False">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ui:Button Content="查询"
+                                           Icon="Search20"
+                                           MinWidth="72"
+                                           Height="32"
+                                           Command="{Binding ViewModel.DeviceAdd.QueryCanopenSlaveCommand}" />
+                                <ui:Button Content="断开"
+                                           Icon="PlugDisconnected20"
+                                           Appearance="Caution"
+                                           MinWidth="84"
+                                           Height="32"
+                                           Margin="6,0,0,0"
+                                           Command="{Binding ViewModel.DeviceAdd.CanOpenDisconnectCommand}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="节点名称" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ViewModel.DeviceAdd.CanopenSlaveNameInfo}" Style="{StaticResource FieldValueStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="节点 ID" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding ViewModel.DeviceAdd.CanopenSlaveAddrInfo}" Style="{StaticResource AccentValueStyle}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="软件版本" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ViewModel.DeviceAdd.CanopenFirmwareInfo}" Style="{StaticResource FieldValueStyle}" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="状态信息" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.CanopenStatusText}" Style="{StaticResource FieldValueStyle}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Padding="16" Margin="0,0,0,12"
+                         Visibility="{Binding ViewModel.DeviceAdd.IsModbusConnected, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="UsbStick20" FontSize="20" VerticalAlignment="Center" />
+                                <TextBlock Text="Modbus RTU" Style="{StaticResource SectionTitleStyle}" Margin="8,0,0,0" />
+                                <Border BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="8,2"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsModbusSlaveOnline}" Value="False">
+                                                    <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding ViewModel.DeviceAdd.ModbusSlaveOnlineText}" FontSize="12" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsModbusSlaveOnline}" Value="False">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ui:Button Content="查询"
+                                           Icon="Search20"
+                                           MinWidth="72"
+                                           Height="32"
+                                           Command="{Binding ViewModel.DeviceAdd.QueryModbusSlaveCommand}" />
+                                <ui:Button Content="断开"
+                                           Icon="PlugDisconnected20"
+                                           Appearance="Caution"
+                                           MinWidth="84"
+                                           Height="32"
+                                           Margin="6,0,0,0"
+                                           Command="{Binding ViewModel.DeviceAdd.ModbusDisconnectCommand}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="从站名称" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ViewModel.DeviceAdd.ModbusSlaveNameInfo}" Style="{StaticResource FieldValueStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="从站地址" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding ViewModel.DeviceAdd.ModbusSlaveAddrInfo}" Style="{StaticResource AccentValueStyle}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="软件版本" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ViewModel.DeviceAdd.ModbusFirmwareInfo}" Style="{StaticResource FieldValueStyle}" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="状态信息" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.ModbusStatusText}" Style="{StaticResource FieldValueStyle}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- ============================================================
+                     USB 状态卡（HPM 系列 MCU + ThreadX/USBX）——
+                     与三大寄存器协议栈并行，专用于曲线拟合 / 自适应参数 / 高带宽遥测。
+                     ============================================================ -->
+                <ui:Card Padding="16" Margin="0,0,0,12"
+                         Visibility="{Binding ViewModel.DeviceAdd.IsUsbConnected, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="UsbStick20" FontSize="20" VerticalAlignment="Center" />
+                                <TextBlock Text="USB (USBX)" Style="{StaticResource SectionTitleStyle}" Margin="8,0,0,0" />
+                                <Border Background="{DynamicResource SystemFillColorSuccessBackgroundBrush}"
+                                        BorderBrush="{DynamicResource SystemFillColorSuccessBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="8,2"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="已连接" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
+                                </Border>
+                            </StackPanel>
+                            <ui:Button Grid.Column="1"
+                                       Content="断开"
+                                       Icon="PlugDisconnected20"
+                                       Appearance="Caution"
+                                       MinWidth="84"
+                                       Height="32"
+                                       Command="{Binding ViewModel.DeviceAdd.UsbDisconnectCommand}" />
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="设备" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.UsbDeviceInfo}" Style="{StaticResource AccentValueStyle}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="状态信息" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.UsbStatusText}" Style="{StaticResource FieldValueStyle}" />
+                        </Grid>
+
+                        <!-- USB 接收内容日志：仅 Debug 模式可见 -->
+                        <Grid Margin="0,10,0,0"
+                              Visibility="{Binding ViewModel.DeviceAdd.IsUsbDebugVisible, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:SymbolIcon Symbol="Bug24" FontSize="16" VerticalAlignment="Center" />
+                                <TextBlock Text="接收内容 (Debug)" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ui:Button Grid.Column="1"
+                                       Content="清空"
+                                       Icon="Delete20"
+                                       Height="26"
+                                       MinWidth="60"
+                                       FontSize="12"
+                                       Command="{Binding ViewModel.DeviceAdd.ClearUsbRxLogCommand}" />
+                        </Grid>
+                        <Border Margin="0,4,0,0" BorderThickness="1"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                CornerRadius="4"
+                                Visibility="{Binding ViewModel.DeviceAdd.IsUsbDebugVisible, Converter={StaticResource BoolToVis}}">
+                            <ScrollViewer Height="140" VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          x:Name="UsbRxScrollViewer">
+                                <ItemsControl ItemsSource="{Binding ViewModel.DeviceAdd.UsbRxLog}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}"
+                                                       FontFamily="Consolas"
+                                                       FontSize="11"
+                                                       Margin="6,1"
+                                                       TextWrapping="NoWrap" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </StackPanel>
+                </ui:Card>
+            </StackPanel>
+
+            <ui:Card Grid.Row="4" Margin="0,0,0,12" Padding="16">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <ui:SymbolIcon Symbol="Add24" FontSize="22" VerticalAlignment="Center" />
+                        <TextBlock Text="连接设备" Style="{StaticResource SectionTitleStyle}" Margin="8,0,0,0" />
+                    </StackPanel>
+
+                    <TabControl SelectedIndex="{Binding ViewModel.DeviceAdd.DeviceAddTabIndex, Mode=TwoWay}">
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="EtherCAT" FontSize="15" />
+                            </TabItem.Header>
+                            <Grid Margin="20,18,20,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" MinWidth="180" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="网络适配器" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="0" Grid.Column="1"
+                                          x:Name="ethernetDevices"
+                                          Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.EthernetDeviceNames, Mode=OneWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.EthernetDeviceSelect, Mode=TwoWay}"
+                                          DropDownOpened="EthernetDevices_DropDownOpened"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,12,10" />
+                                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <ui:Button Content="选择" Icon="Connector20" Height="32" MinWidth="84"
+                                               Command="{Binding ViewModel.DeviceAdd.EthernetConfirmCommand}" />
+                                    <ui:Button Content="断开" Icon="PlugDisconnected20" Height="32" MinWidth="84" Margin="6,0,0,0"
+                                               Command="{Binding ViewModel.DeviceAdd.EthernetDisconnectCommand}" />
+                                </StackPanel>
+                                <Grid Grid.Row="0" Grid.Column="3" Width="32" Height="32" Margin="8,0,0,10">
+                                    <ui:ProgressRing Visibility="{Binding ViewModel.DeviceAdd.IsEthernetLoadingVisible, Mode=OneWay}"
+                                                     Height="24" Width="24"
+                                                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                     IsIndeterminate="True" />
+                                    <TextBlock Text="√" FontWeight="Bold" FontSize="24"
+                                               Visibility="{Binding ViewModel.DeviceAdd.IsEthernetLinkSucceedVisible, Mode=OneWay}"
+                                               Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock Text="X" FontWeight="Bold" FontSize="22"
+                                               Visibility="{Binding ViewModel.DeviceAdd.IsEthernetLinkFailedVisible, Mode=OneWay}"
+                                               Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="以太网名称" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.SelectedEthernetName, Mode=OneWay}" Style="{StaticResource FormValueStyle}" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="扫描结果" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.EthernetSlaveInfo, Mode=OneWay}" Style="{StaticResource FormValueStyle}" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="连接状态" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.EthernetStatusText, Mode=OneWay}" Style="{StaticResource FormValueStyle}" />
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="CANopen" FontSize="15" />
+                            </TabItem.Header>
+                            <Grid>
+                            <Grid Margin="20,18,20,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" MinWidth="180" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="CAN 适配器" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="0" Grid.Column="1"
+                                          Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.CanAdapterFamilies, Mode=OneWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.CanAdapterSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,12,10">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock VerticalAlignment="Center"
+                                                       ToolTip="{Binding Note}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                                <Setter Property="Opacity" Value="0.55" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                                <Run Text="{Binding DisplayName, Mode=OneWay}" />
+                                                <Run Text=" — " Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                <Run Text="{Binding Note, Mode=OneWay}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="11" />
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <StackPanel Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <ui:Button Content="连接" Icon="Connector20" Height="32" MinWidth="84"
+                                               Command="{Binding ViewModel.DeviceAdd.CanOpenConnectCommand}" />
+                                    <ui:Button Content="断开" Icon="PlugDisconnected20" Height="32" MinWidth="84" Margin="6,0,0,0"
+                                               Command="{Binding ViewModel.DeviceAdd.CanOpenDisconnectCommand}" />
+                                    <ui:Button Content="查询节点" Icon="Search20" Height="32" MinWidth="88" Margin="6,0,0,0"
+                                               Command="{Binding ViewModel.DeviceAdd.QueryCanopenSlaveCommand}" />
+                                    <ui:Button Content="刷新" Icon="ArrowSync20" Height="32" MinWidth="72" Margin="6,0,0,0"
+                                               Command="{Binding ViewModel.DeviceAdd.RefreshCanAdaptersCommand}" />
+                                    <!-- \u9996\u6b21\u8fdb\u9875 / \u624b\u52a8\u5237\u65b0\u65f6\u7684\u540e\u53f0\u679a\u4e3e\u52a0\u8f7d\u52a8\u753b -->
+                                    <ui:ProgressRing IsIndeterminate="True"
+                                                     Width="20" Height="20"
+                                                     Margin="6,0,0,0"
+                                                     VerticalAlignment="Center"
+                                                     Visibility="{Binding ViewModel.DeviceAdd.IsRefreshingCanAdapters, Converter={StaticResource BoolToVis}}" />
+                                    <!-- ZLG 驱动扫描按钮：仅在未扫描时显示 -->
+                                    <ui:Button Content="扫描驱动" Icon="Search20" Height="32" MinWidth="88" Margin="6,0,0,0"
+                                               Command="{Binding ViewModel.DeviceAdd.ScanZlgDriversCommand}">
+                                        <ui:Button.Style>
+                                            <Style TargetType="ui:Button">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsZlgScanning}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ui:Button.Style>
+                                    </ui:Button>
+                                    <!-- 取消扫描按钮：仅在扫描进行时显示 -->
+                                    <ui:Button Content="取消扫描" Icon="Dismiss20" Height="32" MinWidth="88" Appearance="Caution" Margin="6,0,0,0"
+                                               Command="{Binding ViewModel.DeviceAdd.CancelZlgScanCommand}">
+                                        <ui:Button.Style>
+                                            <Style TargetType="ui:Button">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsZlgScanning}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ui:Button.Style>
+                                    </ui:Button>
+                                    <TextBlock Text="√" FontWeight="Bold" FontSize="22"
+                                               Visibility="{Binding ViewModel.DeviceAdd.IsCanopenConnected, Converter={StaticResource BoolToVis}}"
+                                               Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="USB-CAN 串口" Style="{StaticResource FormLabelStyle}"
+                                           Visibility="{Binding ViewModel.DeviceAdd.IsCanSerialPortVisible, Converter={StaticResource BoolToVis}}" />
+                                <ComboBox Grid.Row="1" Grid.Column="1"
+                                          Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.ComboBoxPortNameFamilies, Mode=TwoWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.ComboBoxPortNameSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,12,10"
+                                          Visibility="{Binding ViewModel.DeviceAdd.IsCanSerialPortVisible, Converter={StaticResource BoolToVis}}" />
+
+                                <!-- 设备索引（仅多设备适配器可见）：与 CAN 适配器列对齐 -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="设备索引" Style="{StaticResource FormLabelStyle}"
+                                           Visibility="{Binding ViewModel.DeviceAdd.IsCanDeviceIndexSelectVisible, Converter={StaticResource BoolToVis}}" />
+                                <ComboBox Grid.Row="2" Grid.Column="1"
+                                          Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.CanDeviceIndexFamilies, Mode=OneWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.CanDeviceIndexSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,12,10"
+                                          Visibility="{Binding ViewModel.DeviceAdd.IsCanDeviceIndexSelectVisible, Converter={StaticResource BoolToVis}}" />
+
+                                <!-- CAN 通道（仅多通道适配器可见）：与 CAN 适配器列对齐 -->
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="CAN 通道" Style="{StaticResource FormLabelStyle}"
+                                           Visibility="{Binding ViewModel.DeviceAdd.IsCanChannelSelectVisible, Converter={StaticResource BoolToVis}}" />
+                                <ComboBox Grid.Row="3" Grid.Column="1"
+                                          Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.CanChannelFamilies, Mode=OneWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.CanChannelSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,12,10"
+                                          Visibility="{Binding ViewModel.DeviceAdd.IsCanChannelSelectVisible, Converter={StaticResource BoolToVis}}" />
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="波特率" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="4" Grid.Column="1"
+                                          Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.ComboBoxCanBitrateFamilies, Mode=TwoWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.ComboBoxCanBitrateSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,12,10" />
+
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="节点地址" Style="{StaticResource FormLabelStyle}" />
+                                <ui:NumberBox Grid.Row="5" Grid.Column="1"
+                                              Height="40"
+                                              Minimum="1" Maximum="127"
+                                              Value="{Binding ViewModel.DeviceAdd.CanopenNodeId, Mode=TwoWay}"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,12,10" />
+
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="节点名称" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.CanopenSlaveNameInfo, Mode=OneWay}" Style="{StaticResource FormValueStyle}" />
+
+                                <TextBlock Grid.Row="7" Grid.Column="0" Text="软件版本" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.CanopenFirmwareInfo, Mode=OneWay}" Style="{StaticResource FormValueStyle}" />
+
+                                <TextBlock Grid.Row="8" Grid.Column="0" Text="连接状态" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding ViewModel.DeviceAdd.CanopenStatusText, Mode=OneWay}" Style="{StaticResource FormValueStyle}" />
+
+                                <!-- Row 9：ZLG 驱动扫描进度面板（扫描中或有结果时显示） -->
+                                <Border Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="4"
+                                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="10,6" Margin="0,4,0,4"
+                                        Visibility="{Binding ViewModel.DeviceAdd.IsZlgScanPanelVisible, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <ProgressBar IsIndeterminate="{Binding ViewModel.DeviceAdd.IsZlgScanning}"
+                                                     Minimum="0" Maximum="1"
+                                                     Value="{Binding ViewModel.DeviceAdd.ZlgScanFraction, Mode=OneWay}"
+                                                     Height="4" Margin="0,0,0,4" />
+                                        <TextBlock Text="{Binding ViewModel.DeviceAdd.ZlgScanStatus, Mode=OneWay}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- 局部进度遮罩：首次进页 / 热插拔自动刷新 / 连接断开后枚举时显示。
+                                 半透明覆盖整个 CANopen Tab 内容，阻止用户输入并提示加载中。 -->
+                            <Border Background="{DynamicResource SmokeFillColorDefaultBrush}"
+                                    Visibility="{Binding ViewModel.DeviceAdd.IsRefreshingCanAdapters, Converter={StaticResource BoolToVis}}">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <ui:ProgressRing IsIndeterminate="True" Width="48" Height="48"
+                                                     HorizontalAlignment="Center" />
+                                    <TextBlock Text="正在加载 CAN 适配器列表…"
+                                               FontSize="14"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,12,0,0" />
+                                </StackPanel>
+                            </Border>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="Modbus" FontSize="15" />
+                            </TabItem.Header>
+                            <Grid Margin="20,18,20,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" MinWidth="160" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="串口号" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="0" Grid.Column="1"
+                                          x:Name="name"
+                                          Height="32"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.ComboBoxPortNameFamilies, Mode=TwoWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.ComboBoxPortNameSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,12,10" />
+                                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <ui:Button Content="连接" Icon="Connector20" Height="32" MinWidth="84"
+                                               Command="{Binding ViewModel.DeviceAdd.DeviceConnectCommand}"
+                                               CommandParameter="{x:Type local:ListPage}" />
+                                    <ui:Button Content="查询" Icon="Search20" Height="32" MinWidth="72" Margin="6,0,0,0"
+                                               Command="{Binding ViewModel.DeviceAdd.QueryModbusSlaveCommand}" />
+                                    <TextBlock Text="√" FontWeight="Bold" FontSize="24"
+                                               Visibility="{Binding ViewModel.DeviceAdd.IsLinkSucceedVisible, Mode=OneWay}"
+                                               Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    <TextBlock Text="X" FontWeight="Bold" FontSize="22"
+                                               Visibility="{Binding ViewModel.DeviceAdd.IsLinkFailedVisible, Mode=OneWay}"
+                                               Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                                </StackPanel>
+                                <ProgressBar Grid.Row="0" Grid.Column="3"
+                                             IsIndeterminate="False"
+                                             Height="6" Width="100"
+                                             Minimum="0" Maximum="100"
+                                             Value="{Binding ViewModel.DeviceAdd.ProgressbarValue}"
+                                             VerticalAlignment="Center"
+                                             Margin="10,0,0,10" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="波特率" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="baud" Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.ComboBoxBaudFamilies, Mode=TwoWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.ComboBoxBaudSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center" Margin="0,0,12,10" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="数据位" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="2" Grid.Column="1" x:Name="databit" Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.ComboBoxDataBitFamilies, Mode=TwoWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.ComboBoxDataBitSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center" Margin="0,0,12,10" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="校验位" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="3" Grid.Column="1" x:Name="checkbit" Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.ComboBoxCheckBitFamilies, Mode=TwoWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.ComboBoxCheckBitSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center" Margin="0,0,12,10" />
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="停止位" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="4" Grid.Column="1" x:Name="stopbit" Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.ComboBoxStopBitFamilies, Mode=OneWay}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.ComboBoxStopBitSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center" Margin="0,0,12,10" />
+
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="从机信息" Style="{StaticResource FormLabelStyle}"
+                                           Visibility="{Binding ViewModel.DeviceAdd.IsModbusConnected, Converter={StaticResource BoolToVis}}" />
+                                <WrapPanel Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3"
+                                           Visibility="{Binding ViewModel.DeviceAdd.IsModbusConnected, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{Binding ViewModel.DeviceAdd.ModbusSlaveNameInfo, Mode=OneWay}" Style="{StaticResource AccentValueStyle}" />
+                                    <TextBlock Text="{Binding ViewModel.DeviceAdd.ModbusFirmwareInfo, Mode=OneWay}" Style="{StaticResource FormValueStyle}" />
+                                    <TextBlock Text="{Binding ViewModel.DeviceAdd.ModbusSlaveAddrInfo, Mode=OneWay}" Style="{StaticResource FormValueStyle}" />
+                                </WrapPanel>
+
+                                <TextBlock Grid.Row="6" Grid.Column="0" Text="连接状态" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3"
+                                           Text="{Binding ViewModel.DeviceAdd.ModbusStatusText, Mode=OneWay}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,10">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource FormValueStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ViewModel.DeviceAdd.IsLinkFailed, Mode=OneWay}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </TabItem>
+
+                        <!-- ============================================================
+                             USB Tab\u2014\u2014HPM \u7cfb\u5217 MCU + ThreadX/USBX \u4ece\u673a\u534f\u8bae\u6808\u3002\n                             \u4e0e\u524d\u4e09\u4e2a Tab \u5e76\u884c\u72ec\u7acb\u3001\u4e0d\u4e92\u65a5\uff0c\u53ef\u540c\u65f6\u8fd0\u884c\u3002\n                             ============================================================ -->
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="USB" FontSize="15" />
+                            </TabItem.Header>
+                            <Grid Margin="20,18,20,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Row 0: 设备列表 + 刷新/连接/断开按钮 -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="USB 设备" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="0" Grid.Column="1" Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.UsbDevices}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.UsbDeviceSelect, Mode=TwoWay}"
+                                          DisplayMemberPath="DisplayName"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,12,10" />
+                                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <ui:Button Content="刷新" Icon="ArrowSync20" Height="32" MinWidth="72"
+                                               Command="{Binding ViewModel.DeviceAdd.RefreshUsbDevicesCommand}" />
+                                    <ui:Button Content="连接" Icon="Connector20" Height="32" MinWidth="72" Margin="6,0,0,0"
+                                               Appearance="Primary"
+                                               Command="{Binding ViewModel.DeviceAdd.UsbConnectCommand}" />
+                                    <ui:Button Content="断开" Icon="PlugDisconnected20" Height="32" MinWidth="72" Margin="6,0,0,0"
+                                               Appearance="Caution"
+                                               Command="{Binding ViewModel.DeviceAdd.UsbDisconnectCommand}" />
+                                </StackPanel>
+
+                                <!-- Row 1: 工作方式 -->
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="工作方式" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" Height="40"
+                                          ItemsSource="{Binding ViewModel.DeviceAdd.UsbWorkModes}"
+                                          SelectedIndex="{Binding ViewModel.DeviceAdd.UsbWorkModeSelect, Mode=TwoWay}"
+                                          VerticalAlignment="Center" Margin="0,0,12,10"
+                                          ToolTip="对应从机 USBX demo 配置：CDC-ACM 虚拟串口 / WinUSB Bulk-Only / MSC 大容量存储。" />
+
+                                <!-- Row 2: VID/PID 白名单 -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="VID:PID 白名单" Style="{StaticResource FormLabelStyle}"
+                                           ToolTip="每行一项，形如 34B7:* 或 34B7:A001。空 PID = * 表示通配。" />
+                                <ui:TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                                            Text="{Binding ViewModel.DeviceAdd.UsbVidPidWhitelistText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                            AcceptsReturn="True" MinHeight="40" MaxHeight="80"
+                                            VerticalScrollBarVisibility="Auto"
+                                            PlaceholderText="34B7:*"
+                                            Margin="0,0,0,10" />
+
+                                <!-- Row 3: 过滤开关 -->
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="过滤" Style="{StaticResource FormLabelStyle}" />
+                                <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <CheckBox Content="按 VID/PID" IsChecked="{Binding ViewModel.DeviceAdd.UsbFilterByVidPid, Mode=TwoWay}" Margin="0,0,12,0" />
+                                    <CheckBox Content="按设备类" IsChecked="{Binding ViewModel.DeviceAdd.UsbFilterByClass, Mode=TwoWay}" Margin="0,0,12,0"
+                                              ToolTip="按 CDC/Bulk/HID/MSC 收窄到与所选工作方式匹配的设备" />
+                                    <CheckBox Content="按字符串关键词" IsChecked="{Binding ViewModel.DeviceAdd.UsbFilterByKeyword, Mode=TwoWay}"
+                                              ToolTip="Manufacturer/Product 中包含 HPM/HPMicro/USBX/ThreadX" />
+                                </StackPanel>
+
+                                <!-- Row 4: 当前已连接信息 -->
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="已连接" Style="{StaticResource FormLabelStyle}"
+                                           Visibility="{Binding ViewModel.DeviceAdd.IsUsbConnected, Converter={StaticResource BoolToVis}}" />
+                                <TextBlock Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
+                                           Text="{Binding ViewModel.DeviceAdd.UsbDeviceInfo, Mode=OneWay}"
+                                           Style="{StaticResource AccentValueStyle}"
+                                           Visibility="{Binding ViewModel.DeviceAdd.IsUsbConnected, Converter={StaticResource BoolToVis}}" />
+
+                                <!-- Row 5: 状态文本 -->
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="状态" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2"
+                                           Text="{Binding ViewModel.DeviceAdd.UsbStatusText, Mode=OneWay}"
+                                           Style="{StaticResource FormValueStyle}"
+                                           TextWrapping="Wrap" Margin="0,0,0,10" />
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Grid.Row="5" Margin="0,0,0,12" Padding="16"
+                     Visibility="{Binding ViewModel.DeviceAdd.IsCanProbeDebugVisible, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="Bug24" FontSize="20" VerticalAlignment="Center" />
+                            <TextBlock Text="CAN 适配器诊断日志" Style="{StaticResource SectionTitleStyle}" Margin="8,0,0,0" />
+                            <Border Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                                    BorderBrush="{DynamicResource SystemFillColorCautionBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="8,2"
+                                    Margin="12,0,0,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="Debug 模式"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:Button Content="刷新枚举"
+                                       Icon="ArrowSync20"
+                                       Height="32"
+                                       MinWidth="92"
+                                       Command="{Binding ViewModel.DeviceAdd.RefreshCanAdaptersCommand}" />
+                            <ui:Button Content="打开日志目录"
+                                       Icon="FolderOpen20"
+                                       Height="32"
+                                       MinWidth="120"
+                                       Margin="6,0,0,0"
+                                       Command="{Binding ViewModel.DeviceAdd.OpenLogDirectoryCommand}" />
+                        </StackPanel>
+                    </Grid>
+                    <Border BorderThickness="1"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                            Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            CornerRadius="4"
+                            Padding="10"
+                            MaxHeight="240">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ViewModel.DeviceAdd.CanProbeDiagnostics}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}"
+                                                   FontFamily="Consolas"
+                                                   FontSize="12"
+                                                   TextWrapping="NoWrap"
+                                                   Margin="0,1" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                    <TextBlock Style="{StaticResource StatusTextStyle}"
+                               Margin="0,8,0,0"
+                               Text="本面板显示最近一次 CAN 适配器枚举的内部诊断（DLL 查找/加载结果、各设备类型 ProbeDevice 结果）。同一内容也会写入 AppLog（System 分类，Debug 级别）。仅当设置中的 Debug 模式开启时显示。" />
+                </StackPanel>
+            </ui:Card>
+        </Grid>
+    </ScrollViewer>
 </Page>

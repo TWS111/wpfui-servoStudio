@@ -43,7 +43,11 @@ public sealed class VirtualCanBus : ICanBus
 
     public bool Send(CanFrame frame)
     {
-        if (!IsOpen) return false;
+        if (!IsOpen)
+        {
+            return false;
+        }
+
         OnFrameSent?.Invoke(this, frame);
         return true;
     }
@@ -51,11 +55,17 @@ public sealed class VirtualCanBus : ICanBus
     public bool TryReceive(int timeoutMs, out CanFrame frame)
     {
         frame = default;
-        if (!IsOpen) return false;
+        if (!IsOpen)
+        {
+            return false;
+        }
+
         try
         {
             if (_rxQueue.TryTake(out frame, timeoutMs))
+            {
                 return true;
+            }
         }
         catch (InvalidOperationException) { /* CompleteAdding 后正常终止 */ }
         return false;
@@ -65,12 +75,18 @@ public sealed class VirtualCanBus : ICanBus
     public void Inject(CanFrame frame)
     {
         if (IsOpen && !_disposed)
+        {
             _rxQueue.Add(frame);
+        }
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         try { Close(); } catch { /* ignore */ }
         _rxQueue.Dispose();

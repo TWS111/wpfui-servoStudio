@@ -1,0 +1,439 @@
+<Page x:Name="page"
+      x:Class="Wpf.Ui.servoStudio.Views.Pages.MotionPages.MotionProfilePage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.MotionPages"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:scottplot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
+      Title="MotionProfilePage"
+      d:DataContext="{d:DesignInstance local:MotionProfilePage, IsDesignTimeCreatable=False}"
+      d:DesignHeight="780"
+      d:DesignWidth="1200"
+      ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+      ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      mc:Ignorable="d">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- 参数标签：不固定宽度，允许收缩 -->
+        <Style x:Key="ParamLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+
+        <Style x:Key="UnitLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="5,0,0,0" />
+            <Setter Property="MinWidth" Value="40" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <Style x:Key="GroupCard" TargetType="ui:Card">
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="12,10" />
+        </Style>
+
+        <Style x:Key="DescText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <!-- 曲线类型 RadioButton 样式 -->
+        <Style x:Key="CurveTypeRadio" TargetType="RadioButton">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </Page.Resources>
+
+    <!-- 外层 Grid：不绑定 ActualWidth/Height，让 Page 自然撑满 -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ======= Header ======= -->
+        <Border Grid.Row="0"
+                Margin="0,0,0,8"
+                Padding="14,10"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="运动曲线规划" FontSize="17" FontWeight="SemiBold" />
+                    <TextBlock Margin="0,3,0,0"
+                               Text="配置并实时预览 T 型（梯形加速）与 S 型（七段式）速度轮廓，参数变化即时更新图像"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <!-- 右侧：波形窗主题切换（跟随主题，亦可手动）+ 曲线类型选择 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button x:Name="BtnToggleTheme"
+                               Margin="0,0,12,0"
+                               Padding="8,4"
+                               Appearance="Secondary"
+                               Click="OnToggleTheme"
+                               Content="深/浅"
+                               Icon="{ui:SymbolIcon DarkTheme24}"
+                               ToolTip="切换波形图深色 / 浅色背景（默认跟随程序主题）" />
+
+                    <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            ClipToBounds="True">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="RadioTCurve"
+                                     Style="{StaticResource CurveTypeRadio}"
+                                     GroupName="CurveType"
+                                     IsChecked="{Binding ViewModel.IsTrapezoid, Mode=TwoWay}"
+                                     Content="T 型曲线">
+                            <RadioButton.Template>
+                                <ControlTemplate TargetType="RadioButton">
+                                    <Border x:Name="Bd"
+                                            Padding="{TemplateBinding Padding}"
+                                            Background="Transparent">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="ArrowTrending20" FontSize="16" Margin="0,0,6,0"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <ContentPresenter VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                            <Setter Property="Foreground"
+                                                    Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </RadioButton.Template>
+                        </RadioButton>
+
+                        <Separator Width="1" Margin="0" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+                        <RadioButton x:Name="RadioSCurve"
+                                     Style="{StaticResource CurveTypeRadio}"
+                                     GroupName="CurveType"
+                                     IsChecked="{Binding ViewModel.IsSCurve, Mode=TwoWay}"
+                                     Content="S 型曲线">
+                            <RadioButton.Template>
+                                <ControlTemplate TargetType="RadioButton">
+                                    <Border x:Name="Bd"
+                                            Padding="{TemplateBinding Padding}"
+                                            Background="Transparent">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="ArrowBounce20" FontSize="16" Margin="0,0,6,0"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <ContentPresenter VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                            <Setter Property="Foreground"
+                                                    Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </RadioButton.Template>
+                        </RadioButton>
+                    </StackPanel>
+                </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ======= Main: Left params | Right charts ======= -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <!-- 左侧自动宽度，让内容优先显示，但允许 GridSplitter 拉宽 -->
+                <ColumnDefinition Width="Auto" MinWidth="240" MaxWidth="480" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ─── Left: parameter panel ─── -->
+            <ScrollViewer Grid.Column="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="0,0,4,0">
+
+                    <!-- Common parameters -->
+                    <ui:Card Style="{StaticResource GroupCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="公共参数" />
+
+                            <!-- 每行：Grid 两列，标签 Auto，输入框 * -->
+                            <Grid Margin="0,2,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource ParamLabel}" Text="目标位移" />
+                                <ui:NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding ViewModel.Distance, Mode=TwoWay}" Minimum="0" Maximum="100000000" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource UnitLabel}" Text="用户单位" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource ParamLabel}" Text="起始速度 v₀" />
+                                <ui:NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding ViewModel.StartVelocity, Mode=TwoWay}" Minimum="0" Maximum="100000" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource UnitLabel}" Text="u/s" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource ParamLabel}" Text="最大速度 v_max" />
+                                <ui:NumberBox Grid.Row="2" Grid.Column="1" Value="{Binding ViewModel.MaxVelocity, Mode=TwoWay}" Minimum="1" Maximum="100000" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource UnitLabel}" Text="u/s" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource ParamLabel}" Text="末端速度 v_t" />
+                                <ui:NumberBox Grid.Row="3" Grid.Column="1" Value="{Binding ViewModel.EndVelocity, Mode=TwoWay}" Minimum="0" Maximum="100000" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Row="3" Grid.Column="2" Style="{StaticResource UnitLabel}" Text="u/s" />
+                            </Grid>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- T-curve parameters -->
+                    <ui:Card Style="{StaticResource GroupCard}"
+                             Visibility="{Binding ViewModel.IsTrapezoid, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="T 型参数（梯形加速）" />
+
+                            <Border Margin="0,0,0,8" Padding="8,6"
+                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                    CornerRadius="4">
+                                <TextBlock FontFamily="Consolas" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           xml:space="preserve"> v
+  |  /------\
+  | /        \
+  |/          \__ t
+  &lt;ta&gt; &lt;tc&gt; &lt;td&gt;</TextBlock>
+                            </Border>
+
+                            <Grid Margin="0,2,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource ParamLabel}" Text="加速度 a_acc" />
+                                <ui:NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding ViewModel.Acceleration, Mode=TwoWay}" Minimum="1" Maximum="1000000" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource UnitLabel}" Text="u/s²" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource ParamLabel}" Text="减速度 a_dec" />
+                                <ui:NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding ViewModel.Deceleration, Mode=TwoWay}" Minimum="1" Maximum="1000000" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource UnitLabel}" Text="u/s²" />
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource DescText}" Margin="0,6,0,0"
+                                       Text="加速度瞬间切换，无过渡，适合对速度平滑性要求不高的场合。" />
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- S-curve parameters -->
+                    <ui:Card Style="{StaticResource GroupCard}"
+                             Visibility="{Binding ViewModel.IsSCurve, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="S 型参数（七段式）" />
+
+                            <Border Margin="0,0,0,8" Padding="8,6"
+                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                    CornerRadius="4">
+                                <StackPanel>
+                                    <TextBlock FontFamily="Consolas" FontSize="11"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               xml:space="preserve"> v
+  | ,--======--.
+  |/             \
+  |_______________\_ t
+  J+  Ca  J-  cv  J-  Cd  J+</TextBlock>
+                                    <TextBlock Text="J=Jerk段  Ca/Cd=匀加/减速  cv=匀速"
+                                               FontFamily="Consolas" FontSize="10" Margin="0,4,0,0"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Grid Margin="0,2,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource ParamLabel}" Text="最大加速度 a_max" />
+                                <ui:NumberBox Grid.Row="0" Grid.Column="1" Value="{Binding ViewModel.SMaxAccel, Mode=TwoWay}" Minimum="1" Maximum="1000000" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource UnitLabel}" Text="u/s²" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource ParamLabel}" Text="加加速度 Jerk" />
+                                <ui:NumberBox Grid.Row="1" Grid.Column="1" Value="{Binding ViewModel.Jerk, Mode=TwoWay}" Minimum="1" Maximum="10000000" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource UnitLabel}" Text="u/s³" />
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource DescText}" Margin="0,6,0,0"
+                                       Text="通过限制 Jerk（加加速度）使加速度平滑过渡，有效抑制机械冲击与振动，适合高精度场合。Jerk 越小曲线越平滑，运动时间越长。" />
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- Results -->
+                    <ui:Card Style="{StaticResource GroupCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="规划结果" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                    <TextBlock Text="总时间" HorizontalAlignment="Center"
+                                               Style="{StaticResource DescText}" />
+                                    <TextBlock HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"
+                                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                               Text="{Binding ViewModel.TotalTime, StringFormat={}{0:F3} s}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                    <TextBlock Text="峰值速度" HorizontalAlignment="Center"
+                                               Style="{StaticResource DescText}" />
+                                    <TextBlock HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"
+                                               Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                               Text="{Binding ViewModel.PeakVelocity, StringFormat={}{0:F0} u/s}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                    <TextBlock Text="峰值加速度" HorizontalAlignment="Center"
+                                               Style="{StaticResource DescText}" />
+                                    <TextBlock HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"
+                                               Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                               Text="{Binding ViewModel.PeakAcceleration, StringFormat={}{0:F0} u/s²}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center"
+                                       FontSize="11" FontStyle="Italic"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="{Binding ViewModel.StatusMessage}" />
+                        </StackPanel>
+                    </ui:Card>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Column="1" Width="4"
+                          HorizontalAlignment="Stretch"
+                          Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+            <!-- ─── Right: charts ─── -->
+            <Grid Grid.Column="2" Margin="6,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="6" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Velocity chart -->
+                <Border Grid.Row="0"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="4">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="6,4,6,4">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <ui:SymbolIcon Symbol="DataHistogram20" FontSize="16" Margin="0,0,6,0"
+                                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                <TextBlock Text="速度轮廓" FontSize="13" FontWeight="SemiBold" />
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Text="横轴：时间(s)  纵轴：速度(u/s)" />
+                            </StackPanel>
+                        </Grid>
+
+                        <scottplot:WpfPlot x:Name="VelocityPlot"
+                                           Grid.Row="1"
+                                           Margin="4,0,4,4" />
+                    </Grid>
+                </Border>
+
+                <!-- Acceleration chart -->
+                <Border Grid.Row="2"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="4">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="6,4,6,4">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <ui:SymbolIcon Symbol="DataTrending20" FontSize="16" Margin="0,0,6,0"
+                                               Foreground="#FFFF5722" />
+                                <TextBlock Text="加速度轮廓" FontSize="13" FontWeight="SemiBold" />
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Text="横轴：时间(s)  纵轴：加速度(u/s²)" />
+                            </StackPanel>
+                        </Grid>
+
+                        <scottplot:WpfPlot x:Name="AccelPlot"
+                                           Grid.Row="1"
+                                           Margin="4,0,4,4" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

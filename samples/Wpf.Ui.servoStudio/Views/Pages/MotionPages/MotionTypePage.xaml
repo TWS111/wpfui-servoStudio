@@ -54,23 +54,116 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 模式选择 -->
-        <Border Grid.Row="0" Margin="0,0,0,16" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1" Padding="16" CornerRadius="4">
+        <!-- 控制模式配置 (0x6060 + H02) -->
+        <ui:Card Grid.Row="0" Margin="0,0,0,16" Padding="16">
             <StackPanel>
-                <TextBlock Text="控制模式与基本配置" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                <TextBlock Text="控制模式配置" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                <!-- 运行模式并排：CiA402 0x6060 | H02.00 驱动存储模式 -->
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="控制模式切换 (0x6060):" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="16" FontWeight="Medium"/>
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding ViewModel.ComboBoxMotionMode}" SelectedIndex="{Binding ViewModel.MotionModeIndex}" MinWidth="220" Margin="0,0,12,0" HorizontalAlignment="Left"/>
-                    <ui:Button Grid.Column="2" Content="应用运行模式" Command="{Binding ViewModel.ApplyModeCommand}" Appearance="Primary" MinWidth="120" />
+                    <!-- 左：CiA402 0x6060 -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="CiA402 操作模式 (0x6060)" FontSize="13" FontWeight="Medium" Margin="0,0,0,6"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" ItemsSource="{Binding ViewModel.ComboBoxMotionMode}"
+                                      SelectedIndex="{Binding ViewModel.MotionModeIndex}" Margin="0,0,8,0"/>
+                            <ui:Button Grid.Column="1" Content="应用" Command="{Binding ViewModel.ApplyModeCommand}"
+                                       Appearance="Primary" MinWidth="80"/>
+                        </Grid>
+                    </StackPanel>
+                    <!-- 右：H02.00 驱动存储模式 -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock FontSize="13" FontWeight="Medium" Margin="0,0,0,6">
+                            <Run Text="驱动器控制模式 (H02.00)"/>
+                            <Run Text="  ★ 写入后需执行参数存储" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                        </TextBlock>
+                        <ComboBox SelectedIndex="{Binding ViewModel.CtrlMode}">
+                            <ComboBoxItem Content="0 - 转矩控制"/>
+                            <ComboBoxItem Content="1 - 速度控制"/>
+                            <ComboBoxItem Content="2 - 位置控制"/>
+                            <ComboBoxItem Content="3 - 多模式（默认）"/>
+                            <ComboBoxItem Content="4 - 同步模式"/>
+                        </ComboBox>
+                    </StackPanel>
                 </Grid>
-                <TextBlock Text="{Binding ViewModel.SelectedModeDescription}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+
+                <!-- H02.02 旋转方向 -->
+                <CheckBox Margin="0,0,0,10" Content="H02.02  旋转方向反转 (CCW)"
+                          IsChecked="{Binding ViewModel.ReverseDirection}"/>
+
+                <!-- H02 停机方式（2 列 × 2 行） -->
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <!-- H02.05 -->
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
+                        <TextBlock Text="H02.05  OFF停机方式" FontSize="13" FontWeight="Medium" Margin="0,0,0,4"/>
+                        <ComboBox SelectedIndex="{Binding ViewModel.OffStopMode}">
+                            <ComboBoxItem Content="0 - 自由停机"/>
+                            <ComboBoxItem Content="1 - 减速停机"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <!-- H02.06 -->
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
+                        <TextBlock Text="H02.06  故障停机方式" FontSize="13" FontWeight="Medium" Margin="0,0,0,4"/>
+                        <ComboBox SelectedIndex="{Binding ViewModel.FaultStopMode}">
+                            <ComboBoxItem Content="0 - 自由停机"/>
+                            <ComboBoxItem Content="1 - 减速至零"/>
+                            <ComboBoxItem Content="2 - 快速减速"/>
+                            <ComboBoxItem Content="3 - 保持力矩"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <!-- H02.07 -->
+                    <StackPanel Grid.Row="1" Grid.Column="0">
+                        <TextBlock Text="H02.07  急停停机方式" FontSize="13" FontWeight="Medium" Margin="0,0,0,4"/>
+                        <ComboBox SelectedIndex="{Binding ViewModel.QuickStopMode}">
+                            <ComboBoxItem Content="0 - 自由停机"/>
+                            <ComboBoxItem Content="1 - 减速至零"/>
+                            <ComboBoxItem Content="2 - 快速减速"/>
+                            <ComboBoxItem Content="3 - 保持力矩"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <!-- H02.08 -->
+                    <StackPanel Grid.Row="1" Grid.Column="2">
+                        <TextBlock Text="H02.08  主电源缺相方式" FontSize="13" FontWeight="Medium" Margin="0,0,0,4"/>
+                        <ComboBox SelectedIndex="{Binding ViewModel.PowerLossMode}">
+                            <ComboBoxItem Content="0 - 忽略"/>
+                            <ComboBoxItem Content="1 - 报警停机"/>
+                            <ComboBoxItem Content="2 - 故障停机"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <!-- H02 操作按钮 -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <ui:Button Margin="0,0,8,0" Content="读取 H02" Command="{Binding ViewModel.ReadH02Command}"/>
+                    <ui:Button Margin="0,0,12,0" Appearance="Primary" Content="写入 H02" Command="{Binding ViewModel.WriteH02Command}"/>
+                    <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="{Binding ViewModel.H02Status}"/>
+                </StackPanel>
+
+                <!-- 当前 CiA402 模式说明 -->
+                <TextBlock Text="{Binding ViewModel.SelectedModeDescription}" FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
             </StackPanel>
-        </Border>
+        </ui:Card>
+
 
         <!-- 参数面板区 -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="10,0,0,10">
@@ -107,6 +200,48 @@
                             <TextBlock Text="rpm/s" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.PpProfileDeceleration, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="500000" SmallChange="10" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+                        <!-- 急停减速度 0x6085 — UINT32 -->
+                        <DockPanel Style="{StaticResource ParameterRowStyle}">
+                            <TextBlock Text="急停减速度 [0x6085]:" Style="{StaticResource LabelStyle}"/>
+                            <ui:NumberBox Value="{Binding ViewModel.PpQuickStopDeceleration, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" MaxDecimalPlaces="0" SmallChange="1" LargeChange="1000" MinWidth="260" MaxWidth="420" Height="38" FontSize="17" HorizontalAlignment="Left"/>
+                            <TextBlock Text="rpm/s" Style="{StaticResource UnitStyle}"/>
+                            <Slider Value="{Binding ViewModel.PpQuickStopDeceleration, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="500000" SmallChange="10" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <Border Margin="0,8,0,12" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H05 位置控制参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.00 位置指令来源" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PpH05PosCmdSource, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="2" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.02 电子齿轮分子1" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PpH05GearNum1, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.04 电子齿轮分母1" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PpH05GearDen1, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.20 定位接近阈值" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PpH05PositionNearThreshold, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.21 定位完成阈值" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PpH05PositionThreshold, UpdateSourceTrigger=PropertyChanged}" Minimum="5" Maximum="255" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.30 位置低通滤波(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PpH05PositionLpfTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.31 S曲线滤波(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PpH05PositionSCurveMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                             <CheckBox Content="相对位置 (IsRelative)" IsChecked="{Binding ViewModel.PpIsRelative}" Margin="0,0,24,0"/>
                             <CheckBox Content="立即变更 (ChangeImmediately)" IsChecked="{Binding ViewModel.PpChangeImmediately}"/>
@@ -125,6 +260,37 @@
                             <TextBlock Text="rpm" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.VlTargetVelocity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="-10000" Maximum="10000" SmallChange="1" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+                        <Border Margin="0,8,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H06 速度控制参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.00 速度指令来源" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.VlH06SpeedCmdSource, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="5" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.05 加速时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.VlH06AccTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.06 减速时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.VlH06DecTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.07 S曲线时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.VlH06SCurveTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.10 零速钳位使能" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.VlH06ZeroClampEn, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.11 零速钳位阈值(rpm)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.VlH06ZeroClampThreshold, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="200" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ui:Card>
 
@@ -160,6 +326,33 @@
                             <TextBlock Text="rpm/s" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.PvQuickStopDeceleration, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="500000" SmallChange="10" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+                        <Border Margin="0,8,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H06 速度控制参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.05 加速时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PvH06AccTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.06 减速时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PvH06DecTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.07 S曲线时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PvH06SCurveTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.10 零速钳位使能" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PvH06ZeroClampEn, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.11 零速钳位阈值(rpm)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.PvH06ZeroClampThreshold, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="200" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ui:Card>
 
@@ -188,6 +381,49 @@
                             <TextBlock Text="‰/s" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.TqTorqueSlope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" SmallChange="100" LargeChange="10000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+                        <Border Margin="0,8,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H07 转矩控制 / H0F 安全限位参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H07.00 转矩指令来源" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH07TorqueCmdSource, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="5" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H07.05 转矩滤波(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH07TorqueLpfTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H07.09 正内部转矩限制(A)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH07TorqueLimitPos, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H07.10 负内部转矩限制(A)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH07TorqueLimitNeg, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H07.11 速度模式正转矩限制" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH07SpeedModeTorqueLimitPos, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H07.12 速度模式负转矩限制" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH07SpeedModeTorqueLimitNeg, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H0F.20 正向速度限制(rpm)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH0fSpeedLimitPos, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="10000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H0F.21 负向速度限制(rpm)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH0fSpeedLimitNeg, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="10000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H0F.22 速度限制使能" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.TqH0fSpeedLimitEn, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ui:Card>
 
@@ -220,6 +456,40 @@
                             <TextBlock Text="rpm/s" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.HmHomingAcceleration, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="500000" SmallChange="10" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+                        <Border Margin="0,8,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H05 原点回归 / H0D 辅助功能参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.32 回归触发方式" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.HmH05HomingTriggerMode, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="5" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.33 高速搜索速度(rpm)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.HmH05HomingHighSpeed, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="3000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.34 低速找零速度(rpm)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.HmH05HomingLowSpeed, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.35 回零加减速时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.HmH05HomingAccDecMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.36 机械原点偏移量" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.HmH05HomeOffset, UpdateSourceTrigger=PropertyChanged}" Minimum="-32768" Maximum="32767" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.37 回零限位时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.HmH05HomingTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <WrapPanel Margin="0,2,0,0">
+                                    <ui:Button Content="触发主动回零 (H0D.05)" Command="{Binding ViewModel.TriggerHomingCommand}" Appearance="Primary" Height="34"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ui:Card>
 
@@ -234,6 +504,21 @@
                             <TextBlock Text="µs" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.IpInterpolationTimePeriod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+                        <Border Margin="0,8,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H05 插补位置相关参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.21 定位完成阈值" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.IpH05PositionThreshold, UpdateSourceTrigger=PropertyChanged}" Minimum="5" Maximum="255" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.30 位置低通滤波(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.IpH05PositionLpfTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ui:Card>
 
@@ -247,6 +532,13 @@
                             <ui:NumberBox Value="{Binding ViewModel.CspTargetPosition, UpdateSourceTrigger=PropertyChanged}" Minimum="-2147483648" Maximum="2147483647" MaxDecimalPlaces="0" SmallChange="1" LargeChange="1000" MinWidth="260" MaxWidth="420" Height="38" FontSize="17" HorizontalAlignment="Left"/>
                             <TextBlock Text="counts" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.CspTargetPosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="-2147483648" Maximum="2147483647" SmallChange="100" LargeChange="10000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <!-- 目标速度 0x60FF — INT32 -->
+                        <DockPanel Style="{StaticResource ParameterRowStyle}">
+                            <TextBlock Text="目标速度 [0x60FF]:" Style="{StaticResource LabelStyle}"/>
+                            <ui:NumberBox Value="{Binding ViewModel.CspTargetVelocity, UpdateSourceTrigger=PropertyChanged}" Minimum="-2147483648" Maximum="2147483647" MaxDecimalPlaces="0" SmallChange="1" LargeChange="100" MinWidth="260" MaxWidth="420" Height="38" FontSize="17" HorizontalAlignment="Left"/>
+                            <TextBlock Text="rpm" Style="{StaticResource UnitStyle}"/>
+                            <Slider Value="{Binding ViewModel.CspTargetVelocity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="-10000" Maximum="10000" SmallChange="1" LargeChange="100" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
                         <!-- 位置前馈 0x60B0 — INT32 -->
                         <DockPanel Style="{StaticResource ParameterRowStyle}">
@@ -276,6 +568,46 @@
                             <TextBlock Text="µs" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.CspInterpolationTimePeriod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+
+                        <Border Margin="0,8,0,12" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H08 控制环增益 / H05 位置参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.00 速度环增益1" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CspH08SpeedKp1, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.01 速度环积分1" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CspH08SpeedKi1, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.02 位置环增益1" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CspH08PositionKp1, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.03 位置环微分1" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CspH08PositionKd1, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.21 速度前馈增益" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CspH08SpeedFeedForward, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.22 转矩前馈增益" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CspH08TorqueFeedForward, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.23 前馈滤波(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CspH08FeedForwardLpfMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H05.21 定位完成阈值" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CspH05PositionThreshold, UpdateSourceTrigger=PropertyChanged}" Minimum="5" Maximum="255" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
 
                         <Border Margin="0,6,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
                             <StackPanel>
@@ -351,6 +683,30 @@
                             <Slider Value="{Binding ViewModel.CsvInterpolationTimePeriod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
 
+                        <Border Margin="0,8,0,12" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H08 速度环 / H06 速度曲线参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.00 速度环增益1" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CsvH08SpeedKp1, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H08.01 速度环积分1" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CsvH08SpeedKi1, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.05 加速时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CsvH06AccTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H06.06 减速时间(ms)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CsvH06DecTimeMs, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
                         <Border Margin="0,6,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
                             <StackPanel>
                                 <TextBlock Text="周期 PDO 下发（主站→从站）" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
@@ -395,6 +751,34 @@
                             <TextBlock Text="µs" Style="{StaticResource UnitStyle}"/>
                             <Slider Value="{Binding ViewModel.CstInterpolationTimePeriod, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="4294967295" SmallChange="100" LargeChange="1000" IsSnapToTickEnabled="True" TickFrequency="1" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
+
+                        <Border Margin="0,8,0,12" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <StackPanel>
+                                <TextBlock Text="厂商自定义 H07 转矩限制 / H0F 速度限位参数" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <WrapPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H07.09 正内部转矩限制(A)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CstH07TorqueLimitPos, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H07.10 负内部转矩限制(A)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CstH07TorqueLimitNeg, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="65535" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H0F.20 正向速度限制(rpm)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CstH0fSpeedLimitPos, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="10000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H0F.21 负向速度限制(rpm)" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CstH0fSpeedLimitNeg, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="10000" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Width="260" Margin="0,0,12,10">
+                                        <TextBlock Text="H0F.22 速度限制使能" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <ui:NumberBox Value="{Binding ViewModel.CstH0fSpeedLimitEn, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="1" MaxDecimalPlaces="0" Height="34"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
 
                         <Border Margin="0,6,0,0" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
                             <StackPanel>

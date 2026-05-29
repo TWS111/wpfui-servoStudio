@@ -1,0 +1,591 @@
+<Page x:Class="Wpf.Ui.servoStudio.Views.Pages.FactoryPages.FrameFormatEditorPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="clr-namespace:Wpf.Ui.servoStudio.Views.Pages.FactoryPages"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:models="clr-namespace:Wpf.Ui.servoStudio.Models"
+      Title="帧格式修改器"
+      d:DataContext="{d:DesignInstance local:FrameFormatEditorPage, IsDesignTimeCreatable=False}"
+      d:DesignHeight="900" d:DesignWidth="1200"
+      ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+      ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      ScrollViewer.CanContentScroll="False"
+      mc:Ignorable="d">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <local:InverseBoolToVisConverter x:Key="InvBoolToVis" />
+        <local:ByteCountToWidthConverter x:Key="ByteCountToWidth" />
+
+        <Style x:Key="ByteSlotBorder" TargetType="Border">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Margin" Value="4,0,6,12" />
+            <Setter Property="MinHeight" Value="174" />
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsReadOnly}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                    <Setter Property="Opacity" Value="0.78" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsLengthLimitExceeded}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                    <Setter Property="BorderThickness" Value="2" />
+                    <Setter Property="Opacity" Value="1" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsDragging}" Value="True">
+                    <Setter Property="Opacity" Value="0.36" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ByteDragHandle" TargetType="Border">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="CornerRadius" Value="6,6,0,0" />
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+            <Setter Property="Cursor" Value="SizeAll" />
+            <Setter Property="ToolTip" Value="拖动重排字段" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                </Trigger>
+                <DataTrigger Binding="{Binding IsLengthLimitExceeded}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ByteIndexLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style x:Key="FieldNameBox" TargetType="TextBox">
+            <Setter Property="FontSize" Value="19.333" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLengthLimitExceeded}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="FieldDescBox" TargetType="TextBox">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLengthLimitExceeded}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SlotActionBtn" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ProtoTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="19.333" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+        </Style>
+
+        <Style x:Key="LimitBadge" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCautionBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="FrameDropSurface" TargetType="Border">
+            <Setter Property="MinHeight" Value="192" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <!-- 单个字段组的字节槽模板 -->
+        <DataTemplate x:Key="FieldGroupTemplate" DataType="{x:Type models:FrameFieldGroup}">
+            <StackPanel Orientation="Vertical">
+                <!-- 主字段槽 -->
+                <Border Style="{StaticResource ByteSlotBorder}"
+                        Width="{Binding ByteCount, Converter={StaticResource ByteCountToWidth}}">
+                    <DockPanel LastChildFill="True">
+                        <Border DockPanel.Dock="Top"
+                                Style="{StaticResource ByteDragHandle}"
+                                Tag="{Binding}"
+                                PreviewMouseLeftButtonDown="OnDragHandlePreviewMouseLeftButtonDown"
+                                PreviewMouseMove="OnDragHandlePreviewMouseMove"
+                                PreviewMouseLeftButtonUp="OnDragHandlePreviewMouseLeftButtonUp"
+                                GiveFeedback="OnDragHandleGiveFeedback">
+                            <ui:SymbolIcon Symbol="ReOrderDotsHorizontal20"
+                                           FontSize="16"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Border>
+
+                        <StackPanel Margin="8,8,8,10">
+                            <Grid Margin="0,0,0,2">
+                                <TextBlock Style="{StaticResource ByteIndexLabel}"
+                                           Text="{Binding ByteCount, StringFormat={}{0}B}" />
+                                <Border Style="{StaticResource LimitBadge}"
+                                        HorizontalAlignment="Right"
+                                        Padding="6,2"
+                                        Visibility="{Binding IsLengthLimitExceeded, Converter={StaticResource BoolToVis}}">
+                                    <ui:SymbolIcon Symbol="Warning20"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                                </Border>
+                            </Grid>
+
+                            <!-- 字段名（可编辑） -->
+                            <TextBox Style="{StaticResource FieldNameBox}"
+                                     Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     IsReadOnly="{Binding IsReadOnly}" />
+
+                            <!-- 字段描述（可编辑） -->
+                            <TextBox Style="{StaticResource FieldDescBox}"
+                                     Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     IsReadOnly="{Binding IsReadOnly}" />
+
+                            <!-- 展开/互换按钮（多字节字段） -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0"
+                                        Visibility="{Binding IsExpandable, Converter={StaticResource BoolToVis}}">
+                                <Button Style="{StaticResource SlotActionBtn}"
+                                        ToolTip="展开/收起字节"
+                                        Tag="{Binding}" Click="OnToggleExpandClick">
+                                    <ui:SymbolIcon FontSize="15">
+                                        <ui:SymbolIcon.Style>
+                                            <Style TargetType="{x:Type ui:SymbolIcon}">
+                                                <Setter Property="Symbol" Value="ChevronDown20" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                        <Setter Property="Symbol" Value="ChevronUp20" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ui:SymbolIcon.Style>
+                                    </ui:SymbolIcon>
+                                </Button>
+                                <Button Style="{StaticResource SlotActionBtn}"
+                                        ToolTip="互换高低字节顺序" Margin="6,0,0,0"
+                                        Tag="{Binding}" Click="OnSwapBytesClick">
+                                    <ui:SymbolIcon Symbol="ArrowSwap20" FontSize="15" />
+                                </Button>
+                            </StackPanel>
+
+                            <!-- 增删按钮（可编辑字段） -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0"
+                                        Visibility="{Binding IsReadOnly, Converter={StaticResource InvBoolToVis}}">
+                                <Button Style="{StaticResource SlotActionBtn}"
+                                        ToolTip="在此字段后插入字节"
+                                        Tag="{Binding}" Click="OnInsertByteClick">
+                                    <ui:SymbolIcon Symbol="Add20" FontSize="15" />
+                                </Button>
+                                <Button Style="{StaticResource SlotActionBtn}"
+                                        ToolTip="删除此字段" Margin="6,0,0,0"
+                                        Tag="{Binding}" Click="OnRemoveFieldClick">
+                                    <ui:SymbolIcon Symbol="Delete20" FontSize="15" />
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- 展开后的子字节槽 -->
+                <ItemsControl ItemsSource="{Binding SubBytes}"
+                              Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:FrameFieldGroup}">
+                            <Border Style="{StaticResource ByteSlotBorder}" Width="132" Margin="4,0,6,10">
+                                <StackPanel Margin="8,10">
+                                    <TextBlock Style="{StaticResource ByteIndexLabel}" Text="1B" />
+                                    <TextBox Style="{StaticResource FieldNameBox}"
+                                             Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             IsReadOnly="{Binding IsReadOnly}" />
+                                    <TextBox Style="{StaticResource FieldDescBox}"
+                                             Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             IsReadOnly="{Binding IsReadOnly}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- 内容例字段模板（拖出时复制） -->
+        <DataTemplate x:Key="ExampleFieldTemplate" DataType="{x:Type models:FrameFieldGroup}">
+            <Border Style="{StaticResource ByteSlotBorder}"
+                    Width="132"
+                    MinHeight="150"
+                    Margin="4,0,6,12">
+                <DockPanel LastChildFill="True">
+                    <Border DockPanel.Dock="Top"
+                            Style="{StaticResource ByteDragHandle}"
+                            Tag="{Binding}"
+                            ToolTip="拖动复制到帧内容"
+                            PreviewMouseLeftButtonDown="OnDragHandlePreviewMouseLeftButtonDown"
+                            PreviewMouseMove="OnDragHandlePreviewMouseMove"
+                            PreviewMouseLeftButtonUp="OnDragHandlePreviewMouseLeftButtonUp"
+                            GiveFeedback="OnDragHandleGiveFeedback">
+                        <ui:SymbolIcon Symbol="Copy20"
+                                       FontSize="15"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Border>
+                    <StackPanel Margin="8,10,8,10">
+                        <TextBlock Style="{StaticResource ByteIndexLabel}"
+                                   Text="{Binding ByteCount, StringFormat={}{0}B}" />
+                        <TextBlock Text="{Binding Name}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{Binding Description}"
+                                   FontSize="12"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 帧格式编辑器模板（可换行自由重排字节窗格） -->
+        <DataTemplate x:Key="FrameEditorTemplate" DataType="{x:Type models:FrameFormatBase}">
+            <StackPanel>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="8,3"
+                                Margin="0,0,10,0">
+                            <TextBlock Text="{Binding EditorTitle}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                        </Border>
+                        <TextBlock Text="{Binding FrameDescription}"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+                    </WrapPanel>
+                    <Border Grid.Column="1"
+                            Style="{StaticResource LimitBadge}"
+                            Margin="12,0,0,0"
+                            Visibility="{Binding IsPayloadLengthExceeded, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Warning20" FontSize="14"
+                                           Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                           Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding LengthLimitText}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <Border Style="{StaticResource FrameDropSurface}"
+                        Tag="{Binding}"
+                        AllowDrop="True"
+                        DragOver="OnFrameDragOver"
+                        DragLeave="OnFrameDragLeave"
+                        Drop="OnFrameDrop">
+                    <ItemsControl ItemsSource="{Binding Fields}"
+                                  ItemTemplate="{StaticResource FieldGroupTemplate}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="20" MaxWidth="1400" HorizontalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 页面标题 -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">              
+                <TextBlock Text="查看和修改协议栈帧格式定义（进入此页时已暂停所有主站发送）"
+                           FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- 操作栏 -->
+            <ui:Card Grid.Row="1" Padding="14" Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="LockClosed20" FontSize="18" Margin="0,0,6,0"
+                                       Visibility="{Binding ViewModel.IsFactoryLocked, Converter={StaticResource BoolToVis}}"
+                                       Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                        <ui:SymbolIcon Symbol="LockOpen20" FontSize="18" Margin="0,0,6,0"
+                                       Visibility="{Binding ViewModel.IsFactoryUnlocked, Converter={StaticResource BoolToVis}}"
+                                       Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
+                        <TextBlock Text="{Binding ViewModel.StatusText}" FontSize="14"
+                                   VerticalAlignment="Center" Margin="0,0,20,0" />
+                        <CheckBox Content="自动记忆修改" IsChecked="{Binding ViewModel.AutoSaveEnabled}"
+                                  VerticalAlignment="Center"
+                                  ToolTip="启用后，保存的帧格式将在下次启动时自动加载" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <ui:Button Content="保存修改" Icon="Save20" Appearance="Primary" Height="34" MinWidth="96"
+                                   Command="{Binding ViewModel.SaveFrameFormatsCommand}"
+                                   IsEnabled="{Binding ViewModel.IsFactoryUnlocked}" />
+                        <ui:Button Content="重置默认" Icon="ArrowReset20" Height="34" MinWidth="88" Margin="8,0,0,0"
+                                   Command="{Binding ViewModel.ResetToDefaultCommand}"
+                                   IsEnabled="{Binding ViewModel.IsFactoryUnlocked}" />
+                    </StackPanel>
+                </Grid>
+            </ui:Card>
+
+            <!-- 帧格式卡片区域 -->
+            <StackPanel Grid.Row="2">
+
+                <!-- 内容例 -->
+                <ui:Card Padding="20" Margin="0,0,0,14">
+                    <StackPanel>
+                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,14">
+                            <ui:SymbolIcon Symbol="Copy20" FontSize="22" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="内容例" Style="{StaticResource ProtoTitle}" />
+                            <TextBlock Text="常用字段卡片"
+                                       FontSize="14" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" Margin="16,2,0,0" />
+                        </WrapPanel>
+                        <Border Style="{StaticResource FrameDropSurface}" MinHeight="168" Padding="8">
+                            <ItemsControl ItemsSource="{Binding ViewModel.ExampleFields}"
+                                          ItemTemplate="{StaticResource ExampleFieldTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </Border>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- Modbus RTU -->
+                <ui:Card Padding="20" Margin="0,0,0,14">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <WrapPanel Grid.Column="0" Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="UsbStick20" FontSize="22" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Modbus RTU" Style="{StaticResource ProtoTitle}" />
+                            <TextBlock Text="按功能码切换请求帧与应答帧模板"
+                                       FontSize="14" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" Margin="16,2,0,0" />
+                            </WrapPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="功能码" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <ComboBox Width="210"
+                                          ItemsSource="{Binding ViewModel.ModbusFunctionTemplates}"
+                                          SelectedItem="{Binding ViewModel.SelectedModbusTemplate, Mode=TwoWay}"
+                                          SelectedValuePath="FunctionCode"
+                                          VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <ContentControl Grid.Row="0"
+                                            Content="{Binding ViewModel.SelectedModbusSendFormat}"
+                                            ContentTemplate="{StaticResource FrameEditorTemplate}" />
+                            <ContentControl Grid.Row="1"
+                                            Margin="0,16,0,0"
+                                            Content="{Binding ViewModel.SelectedModbusResponseFormat}"
+                                            ContentTemplate="{StaticResource FrameEditorTemplate}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- CANopen -->
+                <ui:Card Padding="20" Margin="0,0,0,14">
+                    <StackPanel>
+                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <ui:SymbolIcon Symbol="VehicleCar20" FontSize="22" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="CANopen" Style="{StaticResource ProtoTitle}" />
+                            <TextBlock Text="发送 COB-ID 与应答 COB-ID 独立定义"
+                                       FontSize="14" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" Margin="16,2,0,0" />
+                        </WrapPanel>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <ContentControl Grid.Row="0"
+                                            Content="{Binding ViewModel.CanopenSendFormat}"
+                                            ContentTemplate="{StaticResource FrameEditorTemplate}" />
+                            <ContentControl Grid.Row="1"
+                                            Margin="0,16,0,0"
+                                            Content="{Binding ViewModel.CanopenResponseFormat}"
+                                            ContentTemplate="{StaticResource FrameEditorTemplate}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- USB -->
+                <ui:Card Padding="20" Margin="0,0,0,14">
+                    <StackPanel>
+                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <ui:SymbolIcon Symbol="UsbStick20" FontSize="22" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="USB (USBX)" Style="{StaticResource ProtoTitle}" />
+                            <TextBlock Text="Host → Device 与 Device → Host 分开定义"
+                                       FontSize="14" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" Margin="16,2,0,0" />
+                        </WrapPanel>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <ContentControl Grid.Row="0"
+                                            Content="{Binding ViewModel.UsbSendFormat}"
+                                            ContentTemplate="{StaticResource FrameEditorTemplate}" />
+                            <ContentControl Grid.Row="1"
+                                            Margin="0,16,0,0"
+                                            Content="{Binding ViewModel.UsbResponseFormat}"
+                                            ContentTemplate="{StaticResource FrameEditorTemplate}" />
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- EtherCAT（只读） -->
+                <ui:Card Padding="20" Margin="0,0,0,14" Opacity="0.84">
+                    <StackPanel>
+                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <ui:SymbolIcon Symbol="Connector20" FontSize="22" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="EtherCAT" Style="{StaticResource ProtoTitle}"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Border Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                    BorderThickness="1" CornerRadius="6" Padding="6,2"
+                                    Margin="12,1,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="只读" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Border>
+                            <TextBlock Text="发送帧与应答帧共用同一套 EtherCAT 数据报模板"
+                                       FontSize="14" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" Margin="16,2,0,0" />
+                        </WrapPanel>
+                        <ContentControl Content="{Binding ViewModel.EthercatFormat}"
+                                        ContentTemplate="{StaticResource FrameEditorTemplate}" />
+                    </StackPanel>
+                </ui:Card>
+
+            </StackPanel>
+        </Grid>
+        </ScrollViewer>
+
+        <!-- 未解锁厂家权限时的遮罩，阻止查看和交互 -->
+        <Border x:Name="FactoryLockOverlay"
+                Background="{DynamicResource ApplicationBackgroundBrush}"
+                Opacity="1"
+                Visibility="Collapsed"
+                Panel.ZIndex="999">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ui:SymbolIcon Symbol="LockClosed24"
+                               FontSize="48"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBlock Margin="0,12,0,0"
+                           HorizontalAlignment="Center"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           Text="此页内容需要厂家权限" />
+                <TextBlock Margin="0,6,0,0"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="请先到“设置”页输入正确的厂家密码解锁" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

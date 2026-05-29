@@ -50,6 +50,13 @@ public partial class FirmwareProgramViewModel(DeviceAddViewModel deviceAddViewMo
     [ObservableProperty]
     private int _progressMax = 100;
 
+    /// <summary>
+    /// 当前激活的 Tab 索引（0=FoE 固件烧录, 1=EtherCAT 从站XML烧录, …）。
+    /// 由厂家固件页"烧录"命令在跳转时根据文件类型预设到对应 Tab。
+    /// </summary>
+    [ObservableProperty]
+    private int _selectedTabIndex;
+
     // ── XML 文件信息 ──
 
     [ObservableProperty]

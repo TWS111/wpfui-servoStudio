@@ -3,101 +3,32 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
-using System.Collections.ObjectModel;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Navigation;
-using Windows.ApplicationModel.VoiceCommands;
-using Wpf.Ui.Controls;
-using Wpf.Ui.Extensions;
-using Wpf.Ui.servoStudio.Models;
-
 namespace Wpf.Ui.servoStudio.ViewModels.DeviceSet;
 
+/// <summary>
+/// 设备列表页 ViewModel：
+/// 该页用于展示当前已连接设备的详细信息（EtherCAT / CANopen / Modbus），
+/// 并提供设备连接入口。数据与命令均直接转发到 <see cref="DeviceAddViewModel"/>。
+/// </summary>
 public partial class ListViewModel : ViewModel
 {
-    private bool _isInitialized = false;
+    private bool _isInitialized;
 
-    [ObservableProperty]
-    private ObservableCollection<Device> _devicesCollection = GenerateDeviceList();
+    /// <summary>真正持有协议栈与从站对象的 ViewModel。</summary>
+    public DeviceAddViewModel DeviceAdd { get; }
 
-    [ObservableProperty]
-    private Visibility _isScaningVisible = Visibility.Hidden;
-
-    [ObservableProperty]
-    private bool _isTurningDatagirdAviliable = false;
-    [ObservableProperty]
-    public static bool _isDeviceInfoChecked = false;
-
-    [ObservableProperty]
-    private TrulyObservableCollection<PortWeight> _weightCollection = new TrulyObservableCollection<PortWeight>();
-    private readonly System.Type DialogResult;
+    public ListViewModel(DeviceAddViewModel deviceAdd)
+    {
+        DeviceAdd = deviceAdd;
+    }
 
     public override void OnNavigatedTo()
     {
+        DeviceAdd.OnNavigatedTo();
+
         if (!_isInitialized)
         {
-            InitializeViewModel();
+            _isInitialized = true;
         }
-    }
-
-    private static ObservableCollection<Device> GenerateDeviceList()
-    {
-        var random = new Random();
-        var devices = new ObservableCollection<Device> { };
-
-        for (int i = 0; i < 5; i++)
-        {
-
-        }
-
-        return devices;
-    }
-
-    [RelayCommand]
-    private async Task OnShowDialog(Type type)
-    {
-
-        //ContentDialogResult result = await contentDialogService.ShowSimpleDialogAsync(
-        //    new SimpleContentDialogCreateOptions()
-        //    {
-        //        Title = "选择通信方式",
-        //        Content = "",
-        //        PrimaryButtonText = "EtherCAT",
-        //        SecondaryButtonText = "CANopen",
-        //        CloseButtonText = "RS485",
-        //    }
-        //);
-
-        //DialogResultText = result switch
-        //{
-        //    ContentDialogResult.Primary => "EtherCAT",
-        //    ContentDialogResult.Secondary => "CANopen",
-        //    _ => "RS485",
-        //};
-
-    }
-
-    private void InitializeViewModel()
-    {
-        WeightCollection.Add(
-            new PortWeight
-            {
-                SoftwareVersion = "1",
-                GroupNumber = "1",
-                TurningOptions = new List<string> { "0.5", "1", "2", "5", "10", "20", "50", "100" },
-                SelectedTurning = "5"
-            }
-            );
-        WeightCollection.Add(
-            new PortWeight
-            {
-                SoftwareVersion = "1",
-                GroupNumber = "1",
-                TurningOptions = new List<string> { "0.5", "1", "2", "5", "10", "20", "50", "100" },
-                SelectedTurning = "1"
-            }
-            );
-        _isInitialized = true;
     }
 }

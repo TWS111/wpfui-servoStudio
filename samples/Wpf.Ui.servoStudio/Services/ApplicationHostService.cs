@@ -44,12 +44,15 @@ public class ApplicationHostService(IServiceProvider serviceProvider) : IHostedS
             return;
         }
 
-        var splash = new SplashWindow();
-        splash.Show();
-
-        await splash.ReportAsync(5, "正在初始化...", 250);
-
-        // 在实例化页面前应用主题，避免页面以默认主题创建后又被切换
+        // 必须在创建/显示 SplashWindow 之前应用主题。
+        // 原因：SplashWindow 使用 AllowsTransparency=True + WindowStyle=None，
+        // 通过内部 Border 的 CornerRadius 呈现圆角。
+        // 一旦 splash.Show() 调用后 splash 会成为 Application.Current.MainWindow，
+        // 此时再调用 ApplicationThemeManager.Apply 会触发 WindowBackgroundManager.UpdateBackground，
+        // 在 Win11 上为 MainWindow 套上 DWM 系统 backdrop（Mica/Acrylic），
+        // 由 DWM 在方形 HWND 区域直接绘制半透明背景，
+        // 表现为"启动瞬间是圆角，随后四角出现半透明直角"的现象。
+        // 在 Show() 之前应用主题可避免 splash 被识别为 MainWindow，从而不会被套 backdrop。
         UserSettings settings = UserSettingsService.Load();
         switch (settings.ThemeMode)
         {
@@ -64,7 +67,10 @@ public class ApplicationHostService(IServiceProvider serviceProvider) : IHostedS
                 break;
         }
 
-        await splash.ReportAsync(15, "正在应用主题...", 150);
+        var splash = new SplashWindow();
+        splash.Show();
+
+        await splash.ReportAsync(15, "正在初始化...", 250);
 
         // 预加载所有注册的页面，使其后台逻辑可立即工作；同时把进度反映到启动页
         await PreloadAllPagesAsync(splash, fromPercent: 15, toPercent: 90);
@@ -116,29 +122,41 @@ public class ApplicationHostService(IServiceProvider serviceProvider) : IHostedS
     /// </summary>
     private async Task PreloadAllPagesAsync(SplashWindow splash, int fromPercent, int toPercent)
     {
+        // ⚠ 维护提示：每当 App.xaml.cs 中新增一个 Page Singleton 时，必须同步在此处补齐条目，
+        //   否则用户首次进入该页面会在 UI 线程上承担"控件实例化 + 模板展开 + 绑定解析"的全部开销
+        //   （通常 1~3s 的卡顿）。新页面若涉及网络/串口枚举等 IO 也建议放进来由启动页统一承担。
         (Type Type, string Label)[] pages =
         [
             (typeof(Views.Pages.HomePage), "主页"),
             (typeof(Views.Pages.DashboardPage), "仪表盘"),
             (typeof(Views.Pages.DeviceSetPages.StartPage), "设备设置 - 起始"),
-            (typeof(Views.Pages.DeviceSetPages.DeviceAddPage), "设备设置 - 添加设备"),
             (typeof(Views.Pages.DeviceSetPages.ListPage), "设备设置 - 设备列表"),
-            (typeof(Views.Pages.ParametersPages.FactoryPage), "参数 - 出厂参数"),
+            (typeof(Views.Pages.DeviceSetPages.BusDiagnosticsPage), "设备设置 - 总线诊断"),
+            (typeof(Views.Pages.FactoryPages.FactoryPage), "厂家 - 厂家参数"),
             (typeof(Views.Pages.MotionPages.MotionTypePage), "运动 - 运动类型"),
             (typeof(Views.Pages.MotionPages.MotionLimitPage), "运动 - 运动限制"),
+            (typeof(Views.Pages.MotionPages.MotionProfilePage), "运动 - 运动曲线"),
+            (typeof(Views.Pages.MotionPages.MultiStepProfilePage), "运动 - 多段曲线"),
             (typeof(Views.Pages.DataPage), "数据"),
-            (typeof(Views.Pages.ControlPage), "控制"),
+            (typeof(Views.Pages.ControlPage), "控制 - 状态机"),
+            (typeof(Views.Pages.QuickControlPage), "控制 - 快速控制"),
             (typeof(Views.Pages.HardwarePage), "硬件"),
             (typeof(Views.Pages.HardwarePages.ControllerPage), "硬件 - 控制器"),
             (typeof(Views.Pages.HardwarePages.MotorPage), "硬件 - 电机"),
             (typeof(Views.Pages.HardwarePages.IOPage), "硬件 - IO"),
+            (typeof(Views.Pages.HardwarePages.StoConfigPage), "硬件 - STO 配置"),
+            (typeof(Views.Pages.TuningPages.MotorIdentificationPage), "调谐 - 电机辨识"),
+            (typeof(Views.Pages.TuningPages.AdvancedTuningPage), "调谐 - 高级调谐"),
             (typeof(Views.Pages.FirmwarePages.FirmwarePage), "固件"),
             (typeof(Views.Pages.FirmwarePages.FirmwareProgramPage), "固件 - 烧录"),
-            (typeof(Views.Pages.FirmwarePages.FactoryFirmwarePage), "固件 - 出厂固件"),
+            (typeof(Views.Pages.FactoryPages.FactoryFirmwarePage), "厂家 - 厂家固件"),
+            (typeof(Views.Pages.FactoryPages.FrameFormatEditorPage), "厂家 - 帧格式修改器"),
+            (typeof(Views.Pages.FactoryPages.AutomationProcessPage), "厂家 - 自动化流程"),
             (typeof(Views.Pages.FaultInfoPage), "故障信息"),
             (typeof(Views.Pages.AppDataPages.AppLogPage), "应用数据 - 日志"),
             (typeof(Views.Pages.AppDataPages.PidAdjustPage), "应用数据 - PID 调整"),
             (typeof(Views.Pages.AppDataPages.DataSavePage), "应用数据 - 数据保存"),
+            (typeof(Views.Pages.AppDataPages.DataViewPage), "应用数据 - 数据查看"),
             (typeof(Views.Pages.AppDataPages.UserConfigPage), "应用数据 - 用户配置"),
             (typeof(Views.Pages.SettingsPage), "设置"),
         ];
